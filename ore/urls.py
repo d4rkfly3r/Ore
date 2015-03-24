@@ -18,7 +18,6 @@ urlpatterns = patterns(
     url(r'', include(ore.core.urls)),
     url(r'', include(ore.projects.urls)),
 
-    # commented out for now because there are no urls in these files
     url(r'', include(ore.versions.urls)),
     url(r'', include(ore.teams.urls))
 

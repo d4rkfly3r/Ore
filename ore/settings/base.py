@@ -12,7 +12,6 @@ https://docs.djangoproject.com/en/1.7/ref/settings/
 import os
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 
-
 def from_env(env_name, default=None):
     value = os.environ.get(env_name, default)
     if value is None:
@@ -104,6 +103,11 @@ STATIC_URL = '/static/'
 
 # Default location for static files
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+# Additional static directories
+STATICFILES_DIRS = (
+    os.path.join(BASE_DIR, "static"),
+)
 
 # Static file serving with whitenoise
 USE_WHITENOISE = False
