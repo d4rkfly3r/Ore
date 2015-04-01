@@ -1,0 +1,41 @@
+{
+  "name": "Ore",
+  "version": "0.0.0",
+  "homepage": "https://github.com/SpongePowered/Ore",
+  "authors": [
+    "gratimax <max@ovsankin.com>"
+  ],
+  "license": "MIT",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "angular": "~1.3.15",
+    "bootstrap": "~3.3.4",
+    "jquery": "~2.1.3",
+    "entypo": "*",
+    "angular-route": "~1.3.15"
+  },
+  "overrides": {
+    "bootstrap": {
+      "main": [
+        "dist/css/bootstrap.css",
+        "dist/js/bootstrap.js"
+      ]
+    },
+    "entypo": {
+      "main": [
+        "font/entypo.css",
+        "font/entypo.eot",
+        "font/entypo.svg",
+        "font/entypo.ttf",
+        "font/entypo.woff"
+      ]
+    }
+  }
+}

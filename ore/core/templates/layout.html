@@ -1,6 +1,6 @@
 {% load staticfiles %}
 <!doctype html>
-<html lang="en">
+<html ng-app="ore" lang="en">
 
     <head>
 
@@ -43,9 +43,10 @@
 
         {% endblock %}
 
-        <script src="{% static "vendor/js/jquery.js" %}"></script>
-        <script src="{% static "vendor/js/jquery.easing.js" %}"></script>
-        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/js/bootstrap.min.js"></script>
+        <base href="/">
+        <div ng-view></div>
+
+        <script src="{% static "js/vendor.js" %}"></script>
 
         <script>
             (function () {
