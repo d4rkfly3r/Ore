@@ -6,6 +6,7 @@ var concat = require('gulp-concat');
 var filter = require('gulp-filter');
 var urlAdjust = require('gulp-css-url-adjuster');
 var templateCache = require('gulp-angular-templatecache');
+var ngAnnotate = require('gulp-ng-annotate');
 
 var mergeStream = require('merge-stream');
 var mainBowerFiles = require('main-bower-files');
@@ -46,8 +47,9 @@ gulp.task('vendor', ['vendor:js', 'vendor:css', 'vendor:fonts']);
 
 gulp.task('app:js', function () {
 
-    var js = gulp.src('ore/client/js/**/*.js')
-        .pipe(babel());
+    var js = gulp.src(['ore/client/js/ore.js', 'ore/client/js/**/*.js'])
+        .pipe(ngAnnotate());
+
     var templates = gulp.src('ore/client/templates/**/*.html')
         .pipe(templateCache({
             standalone: true
@@ -55,6 +57,7 @@ gulp.task('app:js', function () {
 
     return mergeStream(templates, js)
         .pipe(concat('app.js'))
+        .pipe(babel())
         .pipe(gulp.dest('ore/static/js/'));
 });
 

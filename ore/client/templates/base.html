@@ -1,0 +1,48 @@
+<div class="navbar navbar-fixed-top navbar-inverse top-navbar">
+    <div class="navbar-inner">
+        <div class="wrapper-960">
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-md-12">
+
+                        <a href="{% url 'index' %}">
+                            <img src="/static/img/sponge-logo.png" alt="Sponge logo" class="mini-logo">
+                        </a>
+
+                        <ul class="nav navbar-nav">
+                            <li><a href="{% url 'index' %}">Ore</a></li>
+                            <li><a href="{% url 'repo-explore' %}">Explore</a></li>
+                        </ul>
+
+                        <ul class="nav navbar-nav navbar-right">
+                            <li><a>
+                                <i class="fa fa-search"></i>
+                            </a></li>
+
+                            <li ng-if="anonymous"><a ui-sref="register">
+                                <i class="fa fa-user"></i> Create account
+                            </a></li>
+                            <li ng-if="anonymous"><a ui-sref="login">
+                                <i class="fa fa-sign-in"></i> Login
+                            </a></li>
+
+                            <li ng-if="!anonymous"><a>
+                                <i class="fa fa-bell"></i>
+                            </a></li>
+                            <li ng-if="!anonymous"><a ui-sref="namespace('abc')">
+                                {{ user.name }}
+                            </a></li>
+                            <li ng-if="!anonymous">
+                                <button type="submit" class="nav-btn logout-btn">
+                                    <i class="fa fa-sign-out"></i> Logout
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div ui-view></div>

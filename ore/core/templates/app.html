@@ -1,0 +1,55 @@
+{% load staticfiles %}
+<!doctype html>
+<html ng-app="ore" lang="en">
+
+    <head>
+
+
+        <title>{% block title_full %}{% block title %}{% endblock %} | Ore{% endblock %}</title>
+
+        <meta charset="UTF-8">
+
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:400,700" rel="stylesheet" type="text/css">
+
+        <link rel="stylesheet" href="{% static "css/vendor.css" %}" type="text/css">
+        <link rel="stylesheet" href="{% static "css/style.css" %}" type="text/css">
+
+    </head>
+
+    <body class="navbar-space">
+
+    <base href="/" />
+    <div ui-view></div>
+
+    <a ui-sref="home"> asdf </a>
+
+    <script src="{% static "js/vendor.js" %}"></script>
+
+    <script>
+        (function () {
+            // taken from https://docs.djangoproject.com/en/dev/ref/csrf/#ajax
+
+            var csrfSafeMethod = function (method) {
+                // these HTTP methods do not require CSRF protection
+                return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
+            };
+
+            var csrftoken = "{{ csrf_token }}";
+
+            $.ajaxSetup({
+                beforeSend: function(xhr, settings) {
+                    if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+                        xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                    }
+                }
+            });
+
+        })();
+    </script>
+
+
+    <script src="{% static "js/app.js" %}"></script>
+
+    </body>
+
+</html>

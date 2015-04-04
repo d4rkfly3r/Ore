@@ -47,6 +47,7 @@ INSTALLED_APPS = (
     'reversion',
 
     'rest_framework',
+    'rest_framework.authentication',
 
     'ore.core',
     'ore.accounts',
@@ -137,3 +138,10 @@ PROHIBITED_NAMES = (
     'admin',
     'administrator',
 )
+
+# REST stuff
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework.authentication.SessionAuthentication'
+    )
+}

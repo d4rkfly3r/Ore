@@ -5,7 +5,7 @@ from django.http import HttpResponse
 
 # Create your views here.
 from django.views.generic import FormView, DetailView, ListView, View
-from django.views.generic.base import TemplateResponseMixin, ContextMixin
+from django.views.generic.base import TemplateResponseMixin, ContextMixin, TemplateView
 from ore.projects.models import Project
 from ore.teams.forms import TeamPermissionsForm
 
@@ -36,6 +36,11 @@ class HomeView(View, TemplateResponseMixin, ContextMixin):
             context=context,
             **response_kwargs
         )
+
+
+class AppView(TemplateView):
+
+    template_name = 'app.html'
 
 
 class FormTestView(FormView):
