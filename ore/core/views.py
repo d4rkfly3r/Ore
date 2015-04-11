@@ -1,3 +1,4 @@
+from rest_framework.viewsets import ViewSet, ModelViewSet
 from ore.accounts.models import OreUser
 from ore.core import decorators
 from ore.core.models import Namespace, Organization
@@ -6,6 +7,7 @@ from django.http import HttpResponse
 # Create your views here.
 from django.views.generic import FormView, DetailView, ListView, View
 from django.views.generic.base import TemplateResponseMixin, ContextMixin, TemplateView
+from ore.core.serializers import NamespaceSerializer
 from ore.projects.models import Project
 from ore.teams.forms import TeamPermissionsForm
 
@@ -81,3 +83,11 @@ class ExploreView(ListView):
 
     template_name = 'repo/projects/index.html'
     context_object_name = 'projects'
+
+
+class NamespaceViewSet(ModelViewSet):
+
+    serializer_class = NamespaceSerializer
+
+    def get_queryset(self):
+        return Namespace.objects.as_user(self.request.user).all()

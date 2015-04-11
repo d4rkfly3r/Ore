@@ -15,6 +15,4 @@ angular.module('ore')
                 templateUrl: 'home.html'
             });
 
-        var x = y => y;
-
     });
