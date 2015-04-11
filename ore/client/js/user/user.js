@@ -11,7 +11,7 @@ angular.module('ore.user')
             logout: function () {
 
             },
-            isAnoynmous: function () {
+            isAnonymous: function () {
                 return !!current.anonymous;
             },
             current: function () {

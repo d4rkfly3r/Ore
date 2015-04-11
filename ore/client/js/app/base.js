@@ -1,5 +1,5 @@
 angular.module('ore.app')
     .controller('BaseController', function (User, $scope) {
         $scope.user = User.current();
-        $scope.anonymous = User.isAnoynmous();
+        $scope.anonymous = User.isAnonymous();
     });
