@@ -5,16 +5,34 @@ from django.core.urlresolvers import reverse
 from django.db import models
 from django.db.models import Q, F
 
-from model_utils import Choices
+from model_utils import Choices, FieldTracker
 from model_utils.fields import StatusField
+from ore.core.field_security_policy import FieldSecurityPolicyModelMixin, FieldSecurityPolicy
 from ore.core.models import Namespace
 from ore.core.util import validate_not_prohibited, prefix_q, UserFilteringManager
 from ore.core.regexs import EXTENDED_NAME_REGEX
 import reversion
 
 
+def project_allowed_namespace_queryset_generator(user, obj, field):
+    if user.is_authenticated():
+        if not user.is_superuser:
+            namespace_filter = (
+                Q(organization__teams__users=user, organization__teams__is_owner_team=True,) |
+                Q(organization__teams__users=user, organization__teams__permissions__slug='project.create',) |
+                Q(oreuser=user)
+            )
+            if obj:
+                namespace_filter = namespace_filter | Q(id=obj.namespace_id)
+            return Namespace.objects.filter(namespace_filter)
+        else:
+            return Namespace.objects.all()
+    else:
+        return Namespace.objects.none()
+
+
 @reversion.register
-class Project(models.Model):
+class Project(FieldSecurityPolicyModelMixin, models.Model):
     STATUS = Choices('active', 'deleted')
     status = StatusField()
 
@@ -28,6 +46,17 @@ class Project(models.Model):
     description = models.TextField('description')
 
     objects = UserFilteringManager()
+
+    tracker = FieldTracker()
+
+    policy = {
+        'namespace': [
+            FieldSecurityPolicy.AllowWriteCreatingOrIf(FieldSecurityPolicy.Permission('project.transfer')),
+            FieldSecurityPolicy.SetQuerySet(project_allowed_namespace_queryset_generator),
+        ],
+        'name': FieldSecurityPolicy.AllowWriteCreatingOrIf(FieldSecurityPolicy.Permission('project.rename')),
+        'description': FieldSecurityPolicy.AllowWriteCreatingOrIf(FieldSecurityPolicy.Permission('project.edit')),
+    }
 
     def get_absolute_url(self):
         return reverse('repo-projects-detail', kwargs={'namespace': self.namespace.name, 'project': self.name})

@@ -1,4 +1,6 @@
 from django.db.models import QuerySet
+from model_utils import FieldTracker
+from rest_framework.serializers import ModelSerializer
 
 
 class FieldSecurityPolicy(object):
@@ -17,6 +19,8 @@ class FieldSecurityPolicy(object):
             self.permission_slug = permission_slug
 
         def __call__(self, user, obj, field):
+            if obj is None:
+                return False
             return obj.user_has_permission(user, self.permission_slug)
 
     class And(Base):
@@ -47,7 +51,11 @@ class FieldSecurityPolicy(object):
         def __call__(self, user, obj, field):
             l = self.left(user, obj, field)
             r = self.right(user, obj, field)
-            return ((l and not r) or (r and not l))
+            return (l and not r) or (r and not l)
+
+    class Creating(Base):
+        def __call__(self, user, obj, field):
+            return obj is None
 
     class AllowWriteIf(Base):
         def __init__(self, inner):
@@ -55,6 +63,10 @@ class FieldSecurityPolicy(object):
 
         def __call__(self, user, obj, field):
             field.read_only = not self.inner(user, obj, field)
+
+    @classmethod
+    def AllowWriteCreatingOrIf(cls, inner):
+        return cls.AllowWriteIf(cls.Or(cls.Creating(), inner))
 
     class SetQuerySet(Base):
         def __init__(self, queryset):
@@ -65,6 +77,12 @@ class FieldSecurityPolicy(object):
             if callable(q):
                 q = q(user, obj, field)
             field.queryset = q
+
+
+class FieldSurrogate(object):
+    def __init__(self):
+        self.read_only = None
+        self.queryset = None
 
 
 class FieldSecurityPolicyEnforcer(object):
@@ -87,22 +105,81 @@ class FieldSecurityPolicyEnforcer(object):
         return fields
 
 
-class FieldSecurityPolicyMixin(object):
+class FieldSecurityPolicySerializerMixin(object):
     def get_fields(self):
-        fields = super(FieldSecurityPolicyMixin, self).get_fields()
+        fields = super(FieldSecurityPolicySerializerMixin, self).get_fields()
 
         instance = getattr(self, 'instance', None)
-        has_instance = instance is not None and not isinstance(instance, QuerySet)
+        instance = instance if instance is not None and not isinstance(instance, QuerySet) else None
 
-        if has_instance:
-            user = self.context['request'].user
-            fields = self.get_policy_enforcer().enforce_policy(fields, instance, user)
+        user = self.context['request'].user
+        fields = self.get_policy_enforcer().enforce_policy(fields, instance, user)
 
         return fields
 
     def get_policy(self):
         if not getattr(self, 'policy', None):
-            raise ValueError("'policy' or 'get_policy' must be overriden to use the FieldSecurityPolicyEnforcer")
+            if isinstance(self, ModelSerializer) and getattr(self.Meta.model, 'policy', None):
+                return getattr(self.Meta.model, 'policy', None)
+
+            raise ValueError("'policy' or 'get_policy' must be overriden to use the FieldSecurityPolicySerializerMixin")
+        return self.policy
+
+    def get_policy_enforcer(self):
+        return FieldSecurityPolicyEnforcer(self.get_policy())
+
+
+class FieldSecurityPolicyViolation(Exception):
+    pass
+
+
+class FieldSecurityPolicyModelMixin(object):
+    def save(self, force_insert=False, force_update=False, update_fields=None, as_user=None, *args, **kwargs):
+        if getattr(self, 'tracker', None) is None:
+            raise Exception('tracker must be a FieldTracker')
+
+        if as_user is not None:
+            changed_fields = set(self.tracker.changed().keys())
+            if update_fields and not force_insert:
+                changed_fields = changed_fields.intersection(update_fields)
+
+            if force_insert and force_update:
+                raise ValueError('how about no - only one of force_insert or force_update please')
+
+            instance = None if not self.pk or force_insert else self
+
+            fields = {}
+            for model_field in self._meta.fields:
+                fields[model_field.name] = FieldSurrogate()
+
+            fresh_instance = None
+            if instance is not None:
+                fresh_instance = type(instance).objects.get(pk=instance.pk)
+            fields = self.get_policy_enforcer().enforce_policy(fields, fresh_instance, as_user)
+
+            for field_name, field in fields.items():
+                field_newval = getattr(self, field_name)
+
+                if field.read_only == True and (
+                            field_name in changed_fields or
+                            (field_name + '_id') in changed_fields
+                ):
+                    raise FieldSecurityPolicyViolation(
+                        'Attempted to update {}'.format(field_name)
+                    )
+                elif field.queryset is not None and not field.queryset.filter(pk=field_newval.id).exists():
+                    raise FieldSecurityPolicyViolation(
+                        'Attempted to set {} to {}'.format(field_name, field_newval)
+                    )
+
+
+        return super(FieldSecurityPolicyModelMixin, self).save(
+            force_insert=force_insert, force_update=force_update, update_fields=update_fields, *args, **kwargs
+        )
+
+    def get_policy(self):
+        if not getattr(self, 'policy', None):
+            raise ValueError("'policy' or 'get_policy' must be overridden to use the FieldSecurityPolicyModelMixin")
         return self.policy
 
     def get_policy_enforcer(self):
