@@ -3,6 +3,7 @@ from rest_framework.decorators import detail_route
 from rest_framework.response import Response
 from rest_framework.viewsets import ReadOnlyModelViewSet, ModelViewSet
 from ore.api.permissions import OrePermission
+from ore.projects.serializers import ProjectSerializer
 from ore.teams.models import OrganizationTeam
 from ore.teams.serializers import OrganizationTeamSerializer
 
@@ -22,6 +23,16 @@ class NamespaceViewSet(ReadOnlyModelViewSet):
 
     def get_queryset(self):
         return Namespace.objects.as_user(self.request.user).select_subclasses()
+
+    @detail_route(methods=['GET'])
+    def projects(self, request, name=None):
+        instance = self.get_object()
+        serializer = ProjectSerializer(
+            instance.projects.as_user(request.user),
+            many=True,
+            context={'request': request},
+        )
+        return Response(serializer.data)
 
 
 class OrganizationViewSet(ModelViewSet):
@@ -44,7 +55,7 @@ class OrganizationViewSet(ModelViewSet):
     def teams(self, request, name=None):
         instance = self.get_object()
         serializer = OrganizationTeamSerializer(
-            instance.teams.all(),
+            instance.teams.all().as_user(request.user),
             many=True,
             context={'request': request},
         )

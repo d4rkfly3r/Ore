@@ -61,6 +61,7 @@ class Project(models.Model):
             )
         )
 
+    @property
     def full_name(self):
         return "{}/{}".format(self.namespace.name, self.name)
 
