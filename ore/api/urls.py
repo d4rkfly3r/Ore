@@ -1,8 +1,9 @@
-from rest_framework.routers import SimpleRouter
-from rest_framework.urlpatterns import format_suffix_patterns
+from rest_framework.routers import DefaultRouter
+from ore.accounts.views import UserViewSet
 from ore.core.views import NamespaceViewSet
 
-router = SimpleRouter()
-router.register(r'namespaces', NamespaceViewSet, base_name='Namespace')
+router = DefaultRouter(trailing_slash=False)
+router.register(r'namespaces', NamespaceViewSet, base_name='namespace')
+router.register(r'users', UserViewSet, base_name='user')
 
-urlpatterns = format_suffix_patterns(router.urls, allowed=['json', 'html'])
+urlpatterns = router.urls
