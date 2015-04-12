@@ -70,7 +70,10 @@ class Permission(models.Model):
         return '<Permission %s [%s]>' % (self.slug, ' '.join(props))
 
     def __str__(self):
-        return self.slug
+        return "%s: %s" % (self.slug, self.name)
+
+    class Meta:
+        ordering = ['slug',]
 
 
 def organization_avatar_upload(instance, filename):

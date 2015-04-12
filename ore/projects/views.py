@@ -2,6 +2,7 @@ from django.shortcuts import get_object_or_404
 from rest_framework.viewsets import ModelViewSet
 from ore.core.regexs import REPO_URL_REGEX
 from ore.projects.models import Project
+from ore.projects.permissions import ProjectPermission
 from ore.projects.serializers import ProjectSerializer
 
 
@@ -10,6 +11,7 @@ class ProjectViewSet(ModelViewSet):
     lookup_field = 'name'
     lookup_value_regex = REPO_URL_REGEX
     serializer_class = ProjectSerializer
+    permission_classes = [ProjectPermission]
 
     def get_queryset(self):
         return Project.objects.as_user(self.request.user)

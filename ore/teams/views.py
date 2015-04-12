@@ -20,7 +20,6 @@ class OrganizationTeamViewSet(TeamViewSet):
 
     def get_serializer_class(self):
         if self.request.method == 'PUT' or self.request.method == 'PATCH':
-            print('OTUS')
             return OrganizationTeamUpdateSerializer
 
         return OrganizationTeamSerializer

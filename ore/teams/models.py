@@ -21,7 +21,7 @@ class Team(models.Model):
                                 validate_not_prohibited,
                             ])
     users = models.ManyToManyField(OreUser, related_name='%(class)ss', blank=True)
-    permissions = models.ManyToManyField(Permission, related_name='+', blank=True)
+    permissions = models.ManyToManyField(Permission, related_name='%(class)ss', blank=True)
     is_owner_team = models.BooleanField(default=False)
 
     def __repr__(self):
