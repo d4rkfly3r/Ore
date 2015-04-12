@@ -28,5 +28,5 @@ class NamespaceSerializer(ModelSerializer):
 
     class Meta:
         model = Namespace
-        fields = ['status', 'name', 'type', 'full_url']
-        read_only_fields = ['name', 'status', 'type', 'full_url']
+        fields = ['status', 'name', 'type', 'full_url', 'avatar']
+        read_only_fields = ['name', 'status', 'type', 'full_url', 'avatar']
