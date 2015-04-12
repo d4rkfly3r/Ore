@@ -1,12 +1,13 @@
 from django.db.models import Q
 from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
+from ore.core.field_security_policy import FieldSecurityPolicyMixin, FieldSecurityPolicy
 from ore.core.models import Namespace
 
 from ore.projects.models import Project
 
 
-class ProjectSerializer(ModelSerializer):
+class ProjectSerializer(FieldSecurityPolicyMixin, ModelSerializer):
     namespace = serializers.HyperlinkedRelatedField(
         queryset=Namespace.objects.all(),
         view_name='namespace-detail',
@@ -18,6 +19,12 @@ class ProjectSerializer(ModelSerializer):
         lookup_field='full_name',
         lookup_url_kwarg='name',
     )
+
+    policy = {
+        'namespace': FieldSecurityPolicy.Permission('project.transfer'),
+        'name': FieldSecurityPolicy.Permission('project.rename'),
+        'description': FieldSecurityPolicy.Permission('project.edit'),
+    }
 
     def get_fields(self):
         fields = super(ProjectSerializer, self).get_fields()
@@ -37,20 +44,6 @@ class ProjectSerializer(ModelSerializer):
                 fields['namespace'].queryset = Namespace.objects.filter(namespace_filter)
         else:
             fields['namespace'].queryset = Namespace.objects.none()
-
-        if instance and getattr(instance, 'user_has_permission', None):
-            # work out which fields should be immutable:
-            permissions_required = {
-                'namespace': ['project.transfer'],
-                'name': ['project.rename'],
-                'description': ['project.edit'],
-            }
-            for _, field in fields.items():
-                field.read_only = True  # default all fields to read-only unless set otherwise
-
-            for field_name, permissions in permissions_required.items():
-                if all([self.instance.user_has_permission(user, p) for p in permissions]):
-                    fields[field_name].read_only = False  # and then enable the fields that should be writable
 
         return fields
 

@@ -1,3 +1,4 @@
+from django.db.models import QuerySet
 from rest_framework.fields import SerializerMethodField
 from rest_framework.serializers import ModelSerializer
 from rest_framework.reverse import reverse

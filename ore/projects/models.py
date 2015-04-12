@@ -73,14 +73,16 @@ class Project(models.Model):
 
         ownerships = user.__dict__.setdefault('_project_ownerships', dict())
         permissions = user.__dict__.setdefault('_project_permissions', dict())
-        if ownerships.get(self.id) is None:
+        if ownerships.get(self.id) is None and permissions.get(self.id) is None:
             qs = self.teams.filter(users=user)
-            if qs.filter(is_owner_team=True).count():
+            if qs.filter(is_owner_team=True).exists():
                 ownerships[self.id] = True
+                permissions[self.id] = []
             else:
+                ownerships[self.id] = False
                 permissions[self.id] = qs.values_list('permissions__slug', flat=True)
 
-        if self.id in ownerships:
+        if self.id in ownerships and ownerships[self.id]:
             return True
         if perm_slug in permissions.get(self.id, []):
             return True

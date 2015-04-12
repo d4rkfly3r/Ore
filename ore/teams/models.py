@@ -54,7 +54,7 @@ class OrganizationTeam(Team):
         self.save()
 
     def check_consistent(self):
-        return self.projects.exclude(namespace=self.organization).count() == 0
+        return not self.projects.exclude(namespace=self.organization).exists()
 
     @staticmethod
     def is_visible_q(prefix, user):

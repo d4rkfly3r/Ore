@@ -125,7 +125,7 @@ class Organization(Namespace):
         if ownerships.get(self.id) is None:
             qs = self.teams.filter(users=user)
             qs = qs.filter(Q(is_all_projects=True) | Q(projects=project))
-            if qs.filter(is_owner_team=True).count():
+            if qs.filter(is_owner_team=True).exists():
                 ownerships[self.id] = True
             else:
                 permissions[self.id] = qs.values_list('permissions__slug', flat=True)

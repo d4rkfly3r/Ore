@@ -8,7 +8,6 @@ from rest_framework.reverse import reverse
 from rest_framework.viewsets import GenericViewSet
 from ore.accounts.models import OreUser
 from ore.accounts.serializers import UserSerializer, UserFullSerializer
-from ore.api.permissions import OrePermission
 
 
 class UserViewSet(mixins.RetrieveModelMixin,
@@ -17,7 +16,6 @@ class UserViewSet(mixins.RetrieveModelMixin,
                   GenericViewSet):
 
     lookup_field = 'name'
-    permission_classes = [OrePermission]
 
     def get_queryset(self):
         return OreUser.objects.as_user(self.request.user)

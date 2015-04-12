@@ -1,3 +1,4 @@
+from django.db.models import Q, QuerySet
 from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
 from ore.accounts.models import OreUser
@@ -62,10 +63,17 @@ class OrganizationTeamSerializer(TeamSerializer):
         if user.is_authenticated():
             if not user.is_superuser:
                 fields['organization'].queryset = Organization.objects.filter(
-                    teams__users=user, teams__is_owner_team=True,
+                    Q(teams__users=user, teams__is_owner_team=True) |
+                    Q(teams__users=user, teams__permissions__slug='org.team.create', teams__is_all_projects=True)
                 )
         else:
             fields['organization'].queryset = Organization.objects.none()
+
+        instance = getattr(self, 'instance', None)
+        has_instance = instance and not isinstance(instance, QuerySet)
+        #if has_instance:
+
+
 
         return fields
 

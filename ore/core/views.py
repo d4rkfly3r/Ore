@@ -2,7 +2,6 @@ from django.views.generic.base import TemplateView
 from rest_framework.decorators import detail_route
 from rest_framework.response import Response
 from rest_framework.viewsets import ReadOnlyModelViewSet, ModelViewSet
-from ore.api.permissions import OrePermission
 from ore.projects.serializers import ProjectSerializer
 from ore.teams.models import OrganizationTeam
 from ore.teams.serializers import OrganizationTeamSerializer
@@ -39,7 +38,6 @@ class OrganizationViewSet(ModelViewSet):
 
     lookup_field = 'name'
     serializer_class = OrganizationSerializer
-    permission_classes = [OrePermission]
 
     def get_queryset(self):
         return Organization.objects.as_user(self.request.user)

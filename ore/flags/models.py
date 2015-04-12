@@ -44,7 +44,7 @@ class Flag(models.Model):
             qs = qs.filter(flagger=flagger)
         if not include_resolved:
             qs = qs.filter(status=cls.STATUS.new)
-        return qs.count() > 0
+        return qs.exists()
 
     def remove_content(self, user):
         if self.status != self.STATUS.new:
