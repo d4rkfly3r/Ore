@@ -9,12 +9,11 @@ class TeamViewSet(ModelViewSet):
 
     lookup_field = 'pk'
     serializer_class = TeamSerializer
-    permission_classes = [OrganizationTeamPermission]
 
 
 class OrganizationTeamViewSet(TeamViewSet):
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, OrganizationTeamPermission]
 
     def get_queryset(self):
         return OrganizationTeam.objects.as_user(self.request.user)
