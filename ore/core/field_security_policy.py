@@ -17,7 +17,6 @@ class FieldSecurityPolicy(object):
             self.permission_slug = permission_slug
 
         def resolve(self, user, obj):
-            print(user, obj, type(obj), self.permission_slug, obj.user_has_permission(user, self.permission_slug))
             return obj.user_has_permission(user, self.permission_slug)
 
     class And(Base):
@@ -52,12 +51,9 @@ class FieldSecurityPolicyEnforcer(object):
         for field in fields.values():
             field.read_only = True
 
-        print(fields)
-
         policy = self.policy
         for field_name, field_policy in policy.items():
             if field_policy.resolve(user, instance):
-                print('fulfilled!', user, instance, field_name)
                 fields[field_name].read_only = False
 
         return fields
