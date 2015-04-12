@@ -67,6 +67,8 @@ class Project(models.Model):
     def user_has_permission(self, user, perm_slug):
         if isinstance(user, AnonymousUser):
             return False
+        elif user.is_superuser:
+            return True
 
         ownerships = user.__dict__.setdefault('_project_ownerships', dict())
         permissions = user.__dict__.setdefault('_project_permissions', dict())

@@ -30,3 +30,10 @@ class NamespaceSerializer(ModelSerializer):
         model = Namespace
         fields = ['status', 'name', 'type', 'full_url', 'avatar']
         read_only_fields = ['name', 'status', 'type', 'full_url', 'avatar']
+
+
+class OrganizationSerializer(NamespaceSerializer):
+    class Meta(NamespaceSerializer.Meta):
+        model = Organization
+        read_only_fields = ['status', 'type', 'full_url', 'avatar']
+        fields = read_only_fields + ['name', 'avatar_image']

@@ -44,6 +44,10 @@ class Namespace(models.Model):
             )
         )
 
+    @property
+    def avatar(self):
+        return "//www.gravatar.com/avatar/mysteryman?f=y&d=mm"
+
     def get_absolute_url(self):
         return reverse('repo-namespace', kwargs={'namespace': self.name})
 
@@ -107,6 +111,8 @@ class Organization(Namespace):
     def user_has_permission(self, user, perm_slug, project=None):
         if isinstance(user, AnonymousUser):
             return False
+        elif user.is_superuser:
+            return True
 
         ownerships = user.__dict__.setdefault('_organization_ownerships', dict())
         permissions = user.__dict__.setdefault('_organization_permissions', dict())
