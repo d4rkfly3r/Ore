@@ -18,10 +18,12 @@
 
     <body class="navbar-space">
 
-    <div ng-include=""></div>
+    <div ng-include="'navbar.html'" ng-controller="NavbarController"></div>
+
+    <div ui-view></div>
 
     <base href="/app/" />
-    <div ui-view></div>
+
 
     <script src="{% static "js/vendor.js" %}"></script>
 

@@ -5,15 +5,15 @@ angular.module('ore')
     .config(function ($stateProvider, $urlRouterProvider) {
 
         $stateProvider
-            .state('app', {
-                abstract: true,
-                templateUrl: 'base.html',
-                controller: 'BaseController'
-            })
-            .state('app.home', {
+            .state('home', {
                 url: '/',
                 templateUrl: 'home.html',
                 controller: 'HomeController'
+            })
+            .state('login', {
+                url: '/login',
+                templateUrl: 'login.html',
+                controller: 'LoginController'
             });
 
     });
