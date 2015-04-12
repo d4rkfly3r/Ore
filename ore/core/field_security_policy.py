@@ -16,31 +16,56 @@ class FieldSecurityPolicy(object):
         def __init__(self, permission_slug):
             self.permission_slug = permission_slug
 
-        def resolve(self, user, obj):
+        def __call__(self, user, obj, field):
             return obj.user_has_permission(user, self.permission_slug)
 
     class And(Base):
         def __init__(self, left, right):
             self.left, self.right = left, right
 
-        def resolve(self, user, obj):
-            return self.left.resolve(user, obj) and self.right.resolve(user, obj)
+        def __call__(self, user, obj, field):
+            return self.left(user, obj, field) and self.right(user, obj, field)
 
     class Or(Base):
         def __init__(self, left, right):
             self.left, self.right = left, right
 
-        def resolve(self, user, obj):
-            return self.left.resolve(user, obj) or self.right.resolve(user, obj)
+        def __call__(self, user, obj, field):
+            return self.left(user, obj, field) or self.right(user, obj, field)
+
+    class Not(Base):
+        def __init__(self, inner):
+            self.inner = inner
+
+        def __call__(self, user, obj, field):
+            return not self.inner(user, obj, field)
 
     class Xor(Base):
         def __init__(self, left, right):
             self.left, self.right = left, right
 
-        def resolve(self, user, obj):
-            l = self.left.resolve(user, obj)
-            r = self.right.resolve(user, obj)
+        def __call__(self, user, obj, field):
+            l = self.left(user, obj, field)
+            r = self.right(user, obj, field)
             return ((l and not r) or (r and not l))
+
+    class AllowWriteIf(Base):
+        def __init__(self, inner):
+            self.inner = inner
+
+        def __call__(self, user, obj, field):
+            field.read_only = not self.inner(user, obj, field)
+
+    class SetQuerySet(Base):
+        def __init__(self, queryset):
+            self.queryset = queryset
+
+        def __call__(self, user, obj, field):
+            q = self.queryset
+            if callable(q):
+                q = q(user, obj, field)
+            field.queryset = q
+
 
 class FieldSecurityPolicyEnforcer(object):
     def __init__(self, policy):
@@ -52,11 +77,15 @@ class FieldSecurityPolicyEnforcer(object):
             field.read_only = True
 
         policy = self.policy
-        for field_name, field_policy in policy.items():
-            if field_policy.resolve(user, instance):
-                fields[field_name].read_only = False
+        for field_name, field_policies in policy.items():
+            field = fields[field_name]
+            if isinstance(field_policies, FieldSecurityPolicy.Base):
+                field_policies = [field_policies]
+            for field_policy in field_policies:
+                field_policy(user, instance, field)
 
         return fields
+
 
 class FieldSecurityPolicyMixin(object):
     def get_fields(self):

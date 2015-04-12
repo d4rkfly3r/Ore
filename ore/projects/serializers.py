@@ -7,6 +7,22 @@ from ore.core.models import Namespace
 from ore.projects.models import Project
 
 
+def project_allowed_namespace_queryset_generator(user, obj, field):
+    if user.is_authenticated():
+        if not user.is_superuser:
+            namespace_filter = (
+                Q(organization__teams__users=user, organization__teams__is_owner_team=True,) |
+                Q(organization__teams__users=user, organization__teams__permissions__slug='project.create',) |
+                Q(oreuser=user)
+            )
+            namespace_filter = namespace_filter | Q(id=obj.namespace_id)
+            return Namespace.objects.filter(namespace_filter)
+        else:
+            return Namespace.objects.all()
+    else:
+        return Namespace.objects.none()
+
+
 class ProjectSerializer(FieldSecurityPolicyMixin, ModelSerializer):
     namespace = serializers.HyperlinkedRelatedField(
         queryset=Namespace.objects.all(),
@@ -21,31 +37,13 @@ class ProjectSerializer(FieldSecurityPolicyMixin, ModelSerializer):
     )
 
     policy = {
-        'namespace': FieldSecurityPolicy.Permission('project.transfer'),
-        'name': FieldSecurityPolicy.Permission('project.rename'),
-        'description': FieldSecurityPolicy.Permission('project.edit'),
+        'namespace': [
+            FieldSecurityPolicy.AllowWriteIf(FieldSecurityPolicy.Permission('project.transfer')),
+            FieldSecurityPolicy.SetQuerySet(project_allowed_namespace_queryset_generator),
+        ],
+        'name': FieldSecurityPolicy.AllowWriteIf(FieldSecurityPolicy.Permission('project.rename')),
+        'description': FieldSecurityPolicy.AllowWriteIf(FieldSecurityPolicy.Permission('project.edit')),
     }
-
-    def get_fields(self):
-        fields = super(ProjectSerializer, self).get_fields()
-        user = self.context['request'].user
-
-        # Restrict namespaces to those which this user can put projects under
-        instance = getattr(self, 'instance', None)
-        if user.is_authenticated():
-            if not user.is_superuser:
-                namespace_filter = (
-                    Q(organization__teams__users=user, organization__teams__is_owner_team=True,) |
-                    Q(organization__teams__users=user, organization__teams__permissions__slug='project.create',) |
-                    Q(oreuser=user)
-                )
-                if instance and getattr(instance, 'namespace', None):
-                    namespace_filter = namespace_filter | Q(id=instance.namespace_id)
-                fields['namespace'].queryset = Namespace.objects.filter(namespace_filter)
-        else:
-            fields['namespace'].queryset = Namespace.objects.none()
-
-        return fields
 
     class Meta:
         model = Project
