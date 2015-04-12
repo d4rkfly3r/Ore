@@ -33,6 +33,11 @@ class NamespaceSerializer(ModelSerializer):
 
 
 class OrganizationSerializer(NamespaceSerializer):
+    avatar = SerializerMethodField()
+
+    def get_avatar(self, obj):
+        return obj.get_avatar(self.context['request'])
+
     class Meta(NamespaceSerializer.Meta):
         model = Organization
         read_only_fields = NamespaceSerializer.Meta.read_only_fields

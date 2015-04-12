@@ -102,11 +102,14 @@ class Organization(Namespace):
             )
         )
 
-    @property
-    def avatar(self):
+    def get_avatar(self, request=None):
         if self.avatar_image:
-            return self.avatar_image.url
+            url = self.avatar_image.url
+            if request is not None:
+                url = request.build_absolute_uri(url)
+            return url
         return "//www.gravatar.com/avatar/mysteryman?f=y&d=mm"
+    avatar = property(get_avatar)
 
     def user_has_permission(self, user, perm_slug, project=None):
         if isinstance(user, AnonymousUser):
