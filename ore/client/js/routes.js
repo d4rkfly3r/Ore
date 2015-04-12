@@ -12,7 +12,8 @@ angular.module('ore')
             })
             .state('app.home', {
                 url: '/',
-                templateUrl: 'home.html'
+                templateUrl: 'home.html',
+                controller: 'HomeController'
             });
 
     });
