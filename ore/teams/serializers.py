@@ -54,10 +54,38 @@ class OrganizationTeamSerializer(TeamSerializer):
         lookup_field='name',
     )
 
+    def get_fields(self):
+        fields = super(OrganizationTeamSerializer, self).get_fields()
+        user = self.context['request'].user
+
+        # Restrict organizations to those which fit "under" this user
+        if user.is_authenticated():
+            if not user.is_superuser:
+                fields['organization'].queryset = Organization.objects.filter(
+                    teams__users=user, teams__is_owner_team=True,
+                )
+        else:
+            fields['organization'].queryset = Organization.objects.none()
+
+        return fields
+
     class Meta(TeamSerializer.Meta):
         model = OrganizationTeam
-        read_only_fields = TeamSerializer.Meta.read_only_fields + ['is_all_projects', 'url']
-        fields = read_only_fields + ['name', 'organization', 'users', 'permissions', 'projects']
+        read_only_fields = TeamSerializer.Meta.read_only_fields + ['url']
+        fields = read_only_fields + ['name', 'organization', 'users', 'permissions', 'projects', 'is_all_projects']
         validators = [
             EnsureUserIsOnOwnershipTeam()
         ]
+
+
+class OrganizationTeamUpdateSerializer(OrganizationTeamSerializer):
+
+    def get_fields(self):
+        # force organization to be read-only
+        fields = super(OrganizationTeamUpdateSerializer, self).get_fields()
+        fields['organization'].read_only = True
+        if self.instance.is_owner_team:
+            fields['permissions'].read_only = True
+            fields['projects'].read_only = True
+            fields['is_all_projects'].read_only = True
+        return fields
