@@ -16,6 +16,6 @@ urlpatterns = patterns(
     url(r'^api-auth/', include('rest_framework.urls',
                                namespace='rest_framework')),
 
-    url(r'^', AppView.as_view()),
+    url(r'^app/', AppView.as_view()),
 
 ) + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
