@@ -8,7 +8,7 @@ from ore.core.models import Namespace, Organization
 
 class NamespaceSerializer(ModelSerializer):
     type = SerializerMethodField()
-    full_url = SerializerMethodField()
+    url = SerializerMethodField()
 
     def get_type(self, obj):
         if isinstance(obj, OreUser):
@@ -17,7 +17,7 @@ class NamespaceSerializer(ModelSerializer):
             return 'organization'
         raise Exception('unknown type %s' % (type(obj),))
 
-    def get_full_url(self, obj):
+    def get_url(self, obj):
         return reverse(self.get_type(obj) + '-detail',
             kwargs=dict(
                 name=obj.name,
@@ -28,12 +28,14 @@ class NamespaceSerializer(ModelSerializer):
 
     class Meta:
         model = Namespace
-        fields = ['status', 'name', 'type', 'full_url', 'avatar']
-        read_only_fields = ['name', 'status', 'type', 'full_url', 'avatar']
+        read_only_fields = ['name', 'status', 'type', 'url', 'avatar']
+        fields = read_only_fields
 
 
 class OrganizationSerializer(NamespaceSerializer):
     class Meta(NamespaceSerializer.Meta):
         model = Organization
-        read_only_fields = ['status', 'type', 'full_url', 'avatar']
+        read_only_fields = NamespaceSerializer.Meta.read_only_fields
+        read_only_fields.remove('name')
+
         fields = read_only_fields + ['name', 'avatar_image']

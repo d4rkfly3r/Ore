@@ -18,7 +18,7 @@ def prefix_q(prefix, **kwargs):
 
 class UserFilteringQuerySet(models.QuerySet):
     def as_user(self, user):
-        return self.filter(self.model.is_visible_q('', user))
+        return self.filter(self.model.is_visible_q('', user)).distinct()
 
 UserFilteringManager = models.Manager.from_queryset(UserFilteringQuerySet)
 

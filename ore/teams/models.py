@@ -1,3 +1,5 @@
+from django.contrib.auth.models import AnonymousUser
+from django.db.models import Q
 from ore.accounts.models import OreUser
 from ore.core.models import Permission, Namespace, Organization
 from django.core import validators
@@ -6,7 +8,7 @@ from django.db import models
 # Create your models here.
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from ore.core.util import validate_not_prohibited
+from ore.core.util import validate_not_prohibited, prefix_q, UserFilteringManager
 from ore.projects.models import Project
 from ore.core.regexs import EXTENDED_NAME_REGEX
 import reversion
@@ -45,12 +47,29 @@ class OrganizationTeam(Team):
     projects = models.ManyToManyField(Project, related_name='organizationteams', blank=True)
     is_all_projects = models.BooleanField(default=False)
 
+    objects = UserFilteringManager()
+
     def make_consistent(self):
         self.projects = self.projects.filter(namespace=self.organization)
         self.save()
 
     def check_consistent(self):
         return self.projects.exclude(namespace=self.organization).count() == 0
+
+    @staticmethod
+    def is_visible_q(prefix, user):
+        if user.is_anonymous():
+            return prefix_q(prefix, id=-1)  # XXX: is there a better way of specifying "none"?
+        elif user.is_superuser:
+            return Q()
+
+        return (
+            prefix_q(prefix, organization=Organization.objects.filter(
+                teams__users=user,
+                teams__is_owner_team=True,
+            )) |
+            prefix_q(prefix, users=user)
+        )
 
     def __str__(self):
         return self.name
