@@ -34,6 +34,11 @@ if [ -d $OUTPUTDIR ]; then
 	echo Output directory $OUTPUTDIR already exists
 	exit 2
 fi
-mkdir $OUTPUTDIR
 
-pip wheel --wheel-dir="$OUTPUTDIR" -r "$ENVIRONMENT_FILE"
+PIP=$(which pip3 2>/dev/null) || PIP=$(which pip 2>/dev/null) || { 
+	echo Could not find pip or pip3, bailing
+	exit 4
+}
+
+mkdir $OUTPUTDIR
+$PIP wheel --wheel-dir="$OUTPUTDIR" -r "$ENVIRONMENT_FILE"
