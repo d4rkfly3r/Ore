@@ -5,16 +5,39 @@
 {% endblock %}
 {% block page %}
 
+<div class="center-card wrapper-960">
+
+    {% if not version.files.exists %}
+        <br>
+        <div class="alert alert-warning"><strong>Watch out!</strong> This version has no files. It won't be visible to everyone until you <a href="{% url 'repo-versions-manage' namespace=namespace.name project=proj.name version=version.name %}">upload some</a>.</div>
+    {% endif %}
+
+    <div class="versions-padifier"></div>
+
+
+    <div class="pull-right btn-group" role="group" aria-label="Version management controls">
+        {% ifpermitted user "version.edit" version.project %}
+        <a href="{% url 'repo-versions-manage' namespace=namespace.name project=proj.name version=version.name %}" class="btn btn-default">
+            <i class="fa fa-upload"></i>
+        </a>
+        {% endifpermitted %}
+        {% ifpermitted user "version.delete" version.project %}
+        <a href="{% url 'repo-versions-manage' namespace=namespace.name project=proj.name version=version.name %}" class="btn btn-default">
+            <i class="fa fa-remove"></i>
+        </a>
+        {% endifpermitted %}
+    </div>
+
     <h2>
         <strong>
             {{version.name}}
         </strong>
     </h2>
 
-
     <p class="pull-left">{{version.description}}</p>
 
     <div class="clearfix"></div>
+</div>
 
     {% with files_qs=version.files.all|as_user:user %}
         {% if files_qs.count %}
@@ -31,5 +54,7 @@
             </ul>
         {% endif %}
     {% endwith %}
+
+</div>
 
 {% endblock %}

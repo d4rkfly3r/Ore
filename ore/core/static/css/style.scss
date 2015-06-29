@@ -432,3 +432,53 @@ a {
   width: 1em;
   text-align: left;
 }
+
+.progress.upload-file {
+  height: 30px;
+  position: relative;
+  > .progress-bar {
+    position: absolute;
+    z-index: 100;
+    width: 0%;
+    line-height: 15px;
+    overflow: hidden;
+    .progress-bar-container {
+      position: relative;
+      width: 898px;
+      height: 100%;
+    }
+  }
+  .file-overlay, .file-remove-button {
+    position: absolute;
+    height: 100%;
+    line-height: 30px;
+    padding: 0 0.5em;
+    bottom: 0;
+    font-size: 12px;
+  }
+  > .file-overlay, > .file-remove-button {
+    z-index: 50;
+  }
+  > .file-overlay {
+    color: black;
+  }
+  .file-overlay {
+    color: white;
+    left: 0;
+    right: 0;
+    text-align: left;
+  }
+  .file-remove-button {
+    right: 0;
+  }
+}
+
+.area.upload-file {
+  line-height: 30px;
+  text-align: center;
+  font-size: 12px;
+}
+
+.versions-padifier {
+  margin-bottom: 20px;
+}

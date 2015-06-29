@@ -1,13 +1,20 @@
 from ore.core.models import Namespace
 from django.shortcuts import get_object_or_404
+from django.views.decorators.csrf import csrf_exempt
+from django.conf import settings
 
-# Create your views here.
-from django.views.generic import DetailView, CreateView
+from django.views.generic import DetailView, CreateView, View
+from django.http import JsonResponse, HttpResponseForbidden
 from ore.projects.models import Project
 from ore.projects.views import ProjectNavbarMixin
 from ore.core.views import RequiresPermissionMixin
-from ore.versions.forms import NewVersionForm, NewVersionInnerFileFormset
+from ore.versions.forms import NewVersionForm
 from ore.versions.models import Version, File
+
+import os.path
+import os
+import uuid
+import json
 
 
 class ProjectsVersionsListView(ProjectNavbarMixin, DetailView):
@@ -24,75 +31,7 @@ class ProjectsVersionsListView(ProjectNavbarMixin, DetailView):
         return Project.objects.filter(namespace__name=self.kwargs['namespace'])
 
 
-class MultiFormMixin(object):
-    multi_form_class = None
-    multi_prefix = 'file'
-    multi_initial = {}
-
-    def get_multi_form_class(self):
-        if self.multi_form_class is None:
-            raise ValueError(
-                "You must define multi_form_class or override get_multi_form_class!")
-        return self.multi_form_class
-
-    def get_multi_form_kwargs(self):
-        kwargs = {
-            'initial': self.get_multi_initial(),
-            'prefix': self.get_multi_prefix(),
-            'queryset': File.objects.none(),
-        }
-        if self.request.method in ('POST', 'PUT'):
-            kwargs.update({
-                'data': self.request.POST,
-                'files': self.request.FILES,
-            })
-        return kwargs
-
-    def get_multi_initial(self):
-        return self.multi_initial.copy()
-
-    def get_multi_prefix(self):
-        return self.multi_prefix
-
-    def get_multi_form(self, form_class):
-        return form_class(**self.get_multi_form_kwargs())
-
-    def get(self, request, *args, **kwargs):
-        self.object = None
-
-        multi_form_class = self.get_multi_form_class()
-        multi_form = self.get_multi_form(multi_form_class)
-
-        form_class = self.get_form_class()
-        form = self.get_form(form_class)
-
-        return self.render_to_response(self.get_context_data(form=form, multi_form=multi_form))
-
-    def post(self, request, *args, **kwargs):
-        self.object = None
-
-        multi_form_class = self.get_multi_form_class()
-        multi_form = self.get_multi_form(multi_form_class)
-
-        form_class = self.get_form_class()
-        form = self.get_form(form_class)
-
-        if form.is_valid() and multi_form.is_valid():
-            return self.form_valid(form, multi_form)
-        else:
-            return self.form_invalid(form, multi_form)
-
-    def form_invalid(self, form, multi_form):
-        return self.render_to_response(self.get_context_data(form=form, multi_form=multi_form))
-
-    def form_valid(self, form, multi_form):
-        self.object = form.save()
-        self.multi_objects = multi_form.save()
-
-        return super(MultiFormMixin, self).form_valid(form)
-
-
-class VersionsNewView(MultiFormMixin, RequiresPermissionMixin, ProjectNavbarMixin, CreateView):
+class VersionsNewView(RequiresPermissionMixin, ProjectNavbarMixin, CreateView):
 
     model = Version
     template_name = 'repo/versions/new.html'
@@ -101,21 +40,10 @@ class VersionsNewView(MultiFormMixin, RequiresPermissionMixin, ProjectNavbarMixi
     prefix = 'version'
     active_project_tab = 'versions'
 
-    multi_form_class = NewVersionInnerFileFormset
-    multi_prefix = 'file'
-    multi_initial = {}
-
     permissions = ['version.create', 'file.create']
 
     def get_project(self):
         return get_object_or_404(Project, name=self.kwargs['project'], namespace__name=self.kwargs['namespace'])
-
-    def get_multi_form_kwargs(self):
-        kwargs = super(VersionsNewView, self).get_multi_form_kwargs()
-        kwargs.update({
-            'queryset': File.objects.none(),
-        })
-        return kwargs
 
     def get_context_data(self, **kwargs):
         data = super(VersionsNewView, self).get_context_data(**kwargs)
@@ -124,24 +52,30 @@ class VersionsNewView(MultiFormMixin, RequiresPermissionMixin, ProjectNavbarMixi
         })
         return data
 
-    def form_valid(self, form, multi_form):
+    def form_valid(self, form):
 
         name = form.cleaned_data['name']
+        project = self.get_project()
 
-        if self.get_project().versions.filter(name=name).count():
+        if project.versions.filter(name=name).count():
             form.add_error(
-                'name', 'That version name already exists in this project')
-            return self.form_invalid(form, multi_form)
+                'name', 'That version name already exists in this project'
+            )
+
+        if not form.is_valid():
+            return self.form_invalid(form)
 
         self.object = form.save()
 
-        self.multi_objects = multi_form.save(commit=False)
-        for multi_object in self.multi_objects:
-            multi_object.version = self.object
-            multi_object.project = self.get_project()
-            multi_object.save()
+        # now we handle the files themselves, if anywhere were uploaded
+        File.objects.filter(
+            project=project, status=File.STATUS.pending, version=None, id__in=self.request.POST.getlist('file')
+        ).update(
+            status=File.STATUS.active,
+            version=self.object,
+        )
 
-        return super(VersionsNewView, self).form_valid(form, multi_form)
+        return super(VersionsNewView, self).form_valid(form)
 
     def get_form_kwargs(self):
         kwargs = super(VersionsNewView, self).get_form_kwargs()
@@ -177,3 +111,61 @@ class VersionsDetailView(ProjectNavbarMixin, DetailView):
         context['namespace'] = self.get_namespace()
         context['proj'] = context['version'].project
         return context
+
+
+# This view is only invoked internally by our Lua script running inside nginx
+class VersionsCanCreateView(RequiresPermissionMixin, View):
+
+    permissions = ['version.create', 'file.create']
+
+    def get_project(self):
+        return get_object_or_404(Project, name=self.kwargs['project'], namespace__name=self.kwargs['namespace'])
+
+    def post(self, request, namespace, project):
+        subdir_name = str(uuid.uuid4())
+        subdir_name = os.path.join(
+            subdir_name[0], subdir_name[0:2], subdir_name)
+
+        composed = os.path.join(settings.MEDIA_ROOT, subdir_name)
+
+        if not os.path.exists(composed):
+            os.makedirs(composed)
+
+        return JsonResponse({
+            "upload_to": composed,
+            "subdir_name": subdir_name,
+        })
+
+
+# This view is only invoked internally by our Lua script running inside nginx
+class VersionsFileUploadedView(RequiresPermissionMixin, View):
+
+    permissions = ['version.create', 'file.create']
+
+    def get_project(self):
+        return get_object_or_404(Project, name=self.kwargs['project'], namespace__name=self.kwargs['namespace'])
+
+    def post(self, request, namespace, project):
+        inp_data = json.loads(request.body.decode(request.encoding or 'utf-8'))
+        f = File(
+            project=self.get_project(),
+            status=File.STATUS.pending,
+            file=inp_data.get('file_path'),
+            file_name=inp_data.get('file_name'),
+            file_extension=inp_data.get('file_extension'),
+            file_size=int(inp_data.get('file_size')),
+            file_sha1=inp_data.get('file_sha1'),
+        )
+        f.save(update_file_attrs=False)
+        return JsonResponse({
+            'file_id': f.id,
+            'file_name': inp_data.get('file_name'),
+        })
+
+    @csrf_exempt
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
+
+
+def forbidden(request):
+    return HttpResponseForbidden("no")

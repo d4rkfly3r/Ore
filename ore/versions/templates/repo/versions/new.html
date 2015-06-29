@@ -5,19 +5,51 @@
 Upload New Version
 {% endblock %}
 {% block page %}
-<h1>Create new version</h1>
-
-<form action="" method="POST" enctype="multipart/form-data">
-    {% csrf_token %}
-
-    <div>
-        {% crispy form %}
-
-        {% crispy multi_form %}
+<div class="panel panel-default">
+    <div class="panel-heading">
+        <h1 class="panel-title">Create new version</h1>
     </div>
+    <div class="panel-body">
+        <form action="" method="POST" enctype="multipart/form-data" id="create-version-form">
+            {% csrf_token %}
 
-    <input type="submit" id="final-submit" class="btn btn-primary" value="Create">
-</form>
+            {% crispy form %}
+
+            <noscript>
+                <div class="upload-file-warning">
+                    <div class="alert alert-danger">Sorry, but we currently only support file uploads with JavaScript.</div>
+                </div>
+            </noscript>
+
+            <div class="upload-file-widget">
+                <div id="upload-file-template" class="hidden">
+                    <div class="upload-file progress">
+                        <div class="progress-bar progress-bar-info" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%">
+                            <div class="progress-bar-container">
+                                <div class="file-overlay">
+                                    spongie.css
+                                </div>
+                                <div class="file-remove-button btn btn-danger">x</div>
+                            </div>
+                        </div>
+                        <div class="file-overlay">
+                            spongie.css
+                        </div>
+                        <div class="file-remove-button btn btn-danger">x</div>
+                    </div>
+                </div>
+                <div class="upload-file-files"></div>
+                <div class="upload-file area progress">
+                    Drop files here, or click to upload.
+                </div>
+            </div>
+            
+            <input type="submit" id="final-submit" class="btn btn-primary" value="Create">
+        </form>
+
+        <form><input type="file" id="upload-file-file" style="display:none" multiple></form>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
