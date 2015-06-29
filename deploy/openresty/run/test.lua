@@ -70,8 +70,8 @@ function my_get_file_name(res)
     return nil
 end
 
-function get_file_ext(filename)
-    return filename:match("(%..*)$")
+function splitext(filename)
+    return filename:match("(.*)(%.?.*)$")
 end
 
 local resty_sha1 = require "resty.sha1"
@@ -121,9 +121,9 @@ while true do
         if fname and not did_find_file and fname == "file" then
             local file_name = my_get_file_name(res)
             if file_name then
-                submit_data.file_name = file_name
                 submit_data.file_path = upload_target.subdir_name .. "/" .. file_name
-                submit_data.file_extension = get_file_ext(file_name) or ""
+                submit_data.file_name, submit_data.file_extension = splitext(file_name)
+                submit_data.file_extension = submit_data.file_extension or ""
                 submit_data.file_size = 0
                 file = io.open(this_updir .. "/" .. file_name, "w")
                 if not file then

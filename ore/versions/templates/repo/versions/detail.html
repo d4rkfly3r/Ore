@@ -39,22 +39,24 @@
     <div class="clearfix"></div>
 </div>
 
-    {% with files_qs=version.files.all|as_user:user %}
-        {% if files_qs.count %}
-            <h2>Files</h2>
-            <ul class="list-group file-list-group">
-                {% for file in files_qs %}
-                    <li class="list-group-item file-list-group-item">
-                        <a href="{% url 'repo-files-download' namespace=namespace.name project=proj.name version=version.name file=file.file_name file_extension=file.file_extension %}" class="file-listing">
-                            <span class="file-listing-size">{{file.file_size|filesizeformat}}</span>
-                            <span class="file-listing-name">{{file.file_name}}</span>
-                        </a>
-                    </li>
-                {% endfor %}
-            </ul>
-        {% endif %}
-    {% endwith %}
-
-</div>
+{% with files_qs=version.files.all|as_user:user %}
+    {% if files_qs.count %}
+    <div class="panel panel-default">
+        <div class="panel-heading">
+            <h2 class="panel-title">Files</h2>
+        </div>
+        <ul class="list-group file-list-group">
+            {% for file in files_qs %}
+                <li class="list-group-item file-list-group-item">
+                    <a href="{% url 'repo-files-download' namespace=namespace.name project=proj.name version=version.name file=file.file_name file_extension=file.file_extension %}" class="file-listing">
+                        <span class="file-listing-size">{{file.file_size|filesizeformat}}</span>
+                        <span class="file-listing-name">{{file.file_name}}</span>
+                    </a>
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+{% endwith %}
 
 {% endblock %}

@@ -146,3 +146,4 @@ class File(models.Model):
 
     class Meta:
         ordering = ['-pk']
+        unique_together = ('project', 'version', 'file_name', 'file_extension')

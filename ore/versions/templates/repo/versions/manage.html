@@ -1,0 +1,115 @@
+{% extends "repo/projects/_page.html" %}
+{% load crispy_forms_tags %}
+{% load permissions %}
+{% load static %}
+{% block title %}
+Manage | {{ proj.name }}
+{% endblock %}
+{% block page %}
+
+<div class="panel panel-default">
+    <div class="panel-heading">
+        <h3 class="panel-title">Options</h3>
+    </div>
+    <ul class="list-group">
+        {% ifpermitted user "version.edit" proj %}
+            <li class="list-group-item">
+                <h4 class="list-group-item-heading spacey-heading">Change Description</h4>
+                {% crispy describe %}
+            </li>
+        {% endifpermitted %}
+
+        <li class="list-group-item">
+            <h4 class="list-group-item-heading">Other List Item</h4>
+            other list item...
+        </li>
+    </ul>
+</div>
+
+<div class="panel panel-default">
+    <div class="panel-heading">
+        <h3 class="panel-title">Team Management</h3>
+    </div>
+    <div class="panel-body">
+        Coming soon™...
+    </div>
+</div>
+
+<div class="panel panel-default">
+    <div class="panel-heading">
+        <h3 class="panel-title">Destructive Actions</h3>
+    </div>
+    <div class="panel-body">
+        <div class="btn-group">
+            {% ifpermitted user "version.edit" proj %}
+                <button type="button" class="btn btn-warning" data-toggle="modal" data-target="#rename-modal">
+                    Rename
+                </button>
+            {% endifpermitted %}
+
+            {% ifpermitted user "version.delete" proj %}
+                <button type="button" class="btn btn-danger" data-toggle="modal" data-target="#delete-modal">
+                    <i class="fa fa-times"></i>
+                    Delete
+                </button>
+            {% endifpermitted %}
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="rename-modal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal"><span><i class="fa fa-times"></i></span></button>
+                <h4 class="modal-title">Rename version</h4>
+            </div>
+            {% crispy rename %}
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="delete-modal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal"><span><i class="fa fa-times"></i></span></button>
+                <h4 class="modal-title">Delete version</h4>
+            </div>
+            <div class="modal-body">
+                <p>Deleting removes all data, including files, related to this version forever and is <em>not reversible</em>.</p>
+                <p>Please type the name of the version to confirm deletion.</p>
+
+                <form action="{% url 'repo-versions-delete' namespace=proj.namespace.name project=proj.name version=version.name %}"
+                      method="POST"
+                      class="js-lock-form"
+                      data-confirm="{{ version.name }}"
+                      data-input="input[name='lock']"
+                      data-locks="button">
+
+                    {% csrf_token %}
+                    <div class="input-group">
+                        <input type="text" name="lock" class="form-control">
+                        <span class="input-group-btn">
+                            <button type="submit" class="btn btn-danger">Delete</button>
+                        </span>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+    {{ block.super }}
+    <script type="text/javascript">
+        {% if show_modal %}
+            $(function () {
+                var $modal = $("#{{ show_modal }}");
+                $modal.removeClass('fade');
+                $modal.modal('show');
+                $modal.addClass('fade');
+            });
+        {% endif %}
+    </script>
+{% endblock %}

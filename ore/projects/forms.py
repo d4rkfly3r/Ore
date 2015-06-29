@@ -52,7 +52,7 @@ class ProjectDescriptionForm(forms.ModelForm):
         self.helper.label_class = 'col-md-2'
         self.helper.field_class = 'col-md-10'
         self.helper.form_class = 'form-horizontal project-description-form'
-        self.helper._form_action = reverse('repo-projects-describe',
+        self.helper.form_action = reverse('repo-projects-describe',
                                            kwargs=dict(namespace=namespace, project=project))
 
         self.helper.layout = Layout(
@@ -90,7 +90,7 @@ class ProjectRenameForm(forms.ModelForm):
 
         self.helper = FormHelper()
 
-        self.helper._form_action = reverse('repo-projects-rename',
+        self.helper.form_action = reverse('repo-projects-rename',
                                            kwargs=dict(namespace=namespace, project=project))
 
         self.helper.layout = Layout(
