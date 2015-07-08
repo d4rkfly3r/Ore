@@ -11,6 +11,7 @@ from django.contrib import messages
 
 import crispy_forms.layout
 
+
 class RequiresPermissionMixin(object):
     permissions = []
 
@@ -105,7 +106,8 @@ class MultiFormMixin(object):
     def build_form(self, form_name, form_class):
         form = form_class(**self.get_form_kwargs(form_name))
         if self.should_inject_hidden_element(form_name):
-            form.helper.layout.append(crispy_forms.layout.Hidden(form_name, form_name))
+            form.helper.layout.append(
+                crispy_forms.layout.Hidden(form_name, form_name))
         return form
 
     def get_form_kwargs(self, form_name):
@@ -147,7 +149,7 @@ class MultiFormMixin(object):
         return HttpResponseRedirect(self.get_form_instance(form_name).get_absolute_url())
 
     def form_invalid(self, form_name, form):
-        return self.render_to_response(self.get_context_data(self.forms))
+        return self.render_to_response(self.get_context_data(**self.forms))
 
     def post(self, request, *args, **kwargs):
         forms = self.get_forms()

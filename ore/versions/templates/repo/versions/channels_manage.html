@@ -1,0 +1,67 @@
+{% extends "repo/projects/_manage_page.html" %}
+{% load crispy_forms_tags %}
+{% load permissions %}
+{% load static %}
+{% block title %}
+Manage | {{ proj.name }}
+{% endblock %}
+{% block manage_page %}
+
+{% ifpermitted user "channel.edit" proj %}
+<div class="panel panel-default">
+    <div class="panel-heading">
+        <h3 class="panel-title">Channel Management</h3>
+    </div>
+    <ul class="list-group">
+        {% for channel in channels %}
+            <form action="" method="POST" class="form-inline">
+            {% csrf_token %}
+                <input type="hidden" name="action" value="update">
+                <input type="hidden" name="old_id" value="{{ channel.id }}">
+                <li class="list-group-item">
+                    <h4 class="list-group-item-heading">
+                        <label>
+                            {% if channel.project != None %}<input type="color" name="colour" value="{{ channel.colour }}" style="position: absolute; left: -1000px; top: -1000px;">{% endif %}
+                            <span class="dot" style="background-color: {{ channel.colour }};"></span>
+                        </label> 
+                        {% if channel.project == None %}
+                            {{ channel.name }}
+                        {% else %}
+                            <input type="text" name="name" value="{{ channel.name }}" class="form-control">
+                            <div class="pull-right">
+                                <button type="submit" name="action" value="update" class="btn btn-success"><i class="fa fa-check"></i></button>
+                                <button type="submit" name="action" value="delete" class="btn btn-danger"><i class="fa fa-trash"></i></button>
+                            </div>
+                        {% endif %}
+                    </h4>
+                    
+                    {% if channel.project == None %}
+                        This is a system channel and cannot be modified or deleted.
+                    {% else %}
+                    {% endif %}
+                </li>
+            </form>
+        {% endfor %}
+    </ul>
+</div>
+{% endifpermitted %}
+
+{% ifpermitted user "channel.create" proj %}
+<div class="panel panel-default">
+    <div class="panel-heading">
+        <h3 class="panel-title">Create Channel</h3>
+    </div>
+    <div class="panel-body">
+        {% crispy create %}
+    </div>
+</div>
+{% endifpermitted %}
+{% endblock %}
+{% block scripts %}
+<script>
+$('input[type="color"]').change(function() {
+    if (this.parentNode.querySelector('.dot'))
+        this.parentNode.querySelector('.dot').style.backgroundColor = this.value;
+});
+</script>
+{% endblock %}

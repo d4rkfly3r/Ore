@@ -1,11 +1,11 @@
-{% extends "repo/projects/_page.html" %}
+{% extends "repo/projects/_manage_page.html" %}
 {% load crispy_forms_tags %}
 {% load permissions %}
 {% load static %}
 {% block title %}
 Manage | {{ proj.name }}
 {% endblock %}
-{% block page %}
+{% block manage_page %}
 
 <div class="panel panel-default">
     <div class="panel-heading">
@@ -14,25 +14,17 @@ Manage | {{ proj.name }}
     <ul class="list-group">
         {% ifpermitted user "project.edit" proj %}
             <li class="list-group-item">
-                <h4 class="list-group-item-heading spacey-heading">Change Description</h4>
+                <h4 class="list-group-item-heading spacey-heading">Change Tagline</h4>
                 {% crispy description_form %}
             </li>
         {% endifpermitted %}
-
+{% comment %}
         <li class="list-group-item">
             <h4 class="list-group-item-heading">Other List Item</h4>
             other list item...
         </li>
+{% endcomment %}
     </ul>
-</div>
-
-<div class="panel panel-default">
-    <div class="panel-heading">
-        <h3 class="panel-title">Team Management</h3>
-    </div>
-    <div class="panel-body">
-        Coming soon™...
-    </div>
 </div>
 
 <div class="panel panel-default">

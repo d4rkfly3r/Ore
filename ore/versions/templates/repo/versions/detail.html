@@ -9,7 +9,7 @@
 
     {% if not version.files.exists %}
         <br>
-        <div class="alert alert-warning"><strong>Watch out!</strong> This version has no files. It won't be visible to everyone until you <a href="{% url 'repo-versions-manage' namespace=namespace.name project=proj.name version=version.name %}">upload some</a>.</div>
+        <div class="alert alert-warning"><strong>Watch out!</strong> This version has no files. It won't be visible to everyone until you <a href="{{ version.get_absolute_manage_url }}">upload some</a>.</div>
     {% endif %}
 
     <div class="versions-padifier"></div>
@@ -17,12 +17,12 @@
 
     <div class="pull-right btn-group" role="group" aria-label="Version management controls">
         {% ifpermitted user "version.edit" version.project %}
-        <a href="{% url 'repo-versions-manage' namespace=namespace.name project=proj.name version=version.name %}" class="btn btn-default">
+        <a href="{{ version.get_absolute_manage_url }}" class="btn btn-default">
             <i class="fa fa-upload"></i>
         </a>
         {% endifpermitted %}
         {% ifpermitted user "version.delete" version.project %}
-        <a href="{% url 'repo-versions-manage' namespace=namespace.name project=proj.name version=version.name %}" class="btn btn-default">
+        <a href="{{ version.get_absolute_manage_url }}" class="btn btn-default">
             <i class="fa fa-remove"></i>
         </a>
         {% endifpermitted %}
@@ -30,7 +30,7 @@
 
     <h2>
         <strong>
-            {{version.name}}
+            <span class="dot" style="background-color: {{version.channel.colour}}; vertical-align: middle;"></span> {{version.name}}
         </strong>
     </h2>
 
@@ -48,7 +48,7 @@
         <ul class="list-group file-list-group">
             {% for file in files_qs %}
                 <li class="list-group-item file-list-group-item">
-                    <a href="{% url 'repo-files-download' namespace=namespace.name project=proj.name version=version.name file=file.file_name file_extension=file.file_extension %}" class="file-listing">
+                    <a href="{{ file.get_absolute_url }}" class="file-listing">
                         <span class="file-listing-size">{{file.file_size|filesizeformat}}</span>
                         <span class="file-listing-name">{{file.file_name}}</span>
                     </a>

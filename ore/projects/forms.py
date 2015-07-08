@@ -49,8 +49,8 @@ class ProjectDescriptionForm(forms.ModelForm):
         super(ProjectDescriptionForm, self).__init__(*args, **kwargs)
 
         self.helper = FormHelper()
-        self.helper.label_class = 'col-md-2'
-        self.helper.field_class = 'col-md-10'
+        self.helper.label_class = 'col-md-3'
+        self.helper.field_class = 'col-md-9'
         self.helper.form_class = 'form-horizontal project-description-form'
         self.helper.form_action = reverse('repo-projects-describe',
                                            kwargs=dict(namespace=namespace, project=project))
@@ -60,8 +60,8 @@ class ProjectDescriptionForm(forms.ModelForm):
             Div(
                 ButtonHolder(
                     Submit(
-                        'submit', 'Change description', css_class='btn-default'),
-                    css_class='col-md-offset-2 col-md-10'
+                        'submit', 'Change tagline', css_class='btn-default'),
+                    css_class='col-md-offset-3 col-md-9'
                 ),
                 css_class='form-group',
             ),

@@ -2,7 +2,7 @@ from ore.core.regexs import EXTENDED_URL_REGEX, TRIM_URL_REGEX
 from django.conf.urls import patterns, url, include
 from ore.flags.views import VersionsFlagView
 from ore.projects.views import FileDownloadView
-from ore.versions.views import VersionsNewView, ProjectsVersionsListView, VersionsDetailView, VersionsCanCreateView, VersionsFileUploadedView, forbidden, VersionsManageView, VersionsDeleteView
+from ore.versions.views import VersionsNewView, ProjectsVersionsListView, VersionsDetailView, VersionsCanCreateView, VersionsFileUploadedView, forbidden, VersionsManageView, VersionsDeleteView, ChannelsManageView
 
 PROJECT_PREFIX = r'^(?P<namespace>' + EXTENDED_URL_REGEX + \
     ')/(?P<project>' + EXTENDED_URL_REGEX + ')/'
@@ -26,6 +26,8 @@ version_patterns = patterns(
 project_patterns = patterns(
     '',
     url(r'^upload/$', VersionsNewView.as_view(), name='repo-versions-new'),
+    url(r'^upload/edit/$', ChannelsManageView.as_view(),
+        name='repo-versions-admin'),
     url(r'^upload/file/$', forbidden,
         name='repo-versions-upfile'),
     url(r'^upload/_preperform/$', VersionsCanCreateView.as_view(),

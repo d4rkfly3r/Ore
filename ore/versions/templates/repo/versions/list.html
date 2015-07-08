@@ -8,10 +8,11 @@
 
         <div class="col-md-9">
             <ul class="list-group version-list-group">
-                {% for version in proj.versions.all|as_user:user %}
+                {% for version in versions %}
                     <li class="list-group-item version-list-group-item">
-                        <a href="{% url 'repo-versions-detail' namespace=proj.namespace.name project=proj.name version=version.name %}"
+                        <a href="{{version.get_absolute_url}}"
                            class="version-listing">
+                            <span class="dot version-listing-channel" style="background-color: {{version.channel.colour}}" title="{{ version.channel.name }}"></span>
                             <span class="version-listing-name">{{version.name}}</span>
                             <span class="version-listing-tagline">{{version.description}}</span>
                         </a>
@@ -31,22 +32,22 @@
                 <div class="panel-heading">
                     <h3 class="panel-title">Channels</h3>
                 </div>
-                <ul class="list-group">
-                    <li class="list-group-item">
-                        <span class="dot" style="background-color: #48c3ce;"></span> Release
-                    </li>
-                    <li class="list-group-item">
-                        <span class="dot" style="background-color: #ce427a;"></span> Snapshot
-                    </li>
+                <div class="list-group">
+                    {% for channel in channels %}
+                        <a class="list-group-item {% if channel == current_channel %}active{% endif %}" href="?channel={{ channel.name }}">
+                            <span class="dot" style="background-color: {{ channel.colour }};"></span> {{ channel.name }}
+                        </a>
+                    {% endfor %}
 
                     {% ifanypermitted user "channel.create,channel.edit,channel.delete" proj %}
-                        <li class="list-group-item text-right">
+                        <a class="list-group-item text-right" href="{% url 'repo-versions-admin' namespace=proj.namespace.name project=proj.name %}">
                             <i class="fa fa-cog"></i> Edit
-                        </li>
+                        </a>
                     {% endifanypermitted %}
-                </ul>
+                </div>
             </div>
         </div>
+
     </div>
 
 {% endblock %}

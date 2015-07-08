@@ -1,16 +1,18 @@
 from ore.core.models import Namespace
 from django.shortcuts import get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
+from django.db.models import Q
 from django.conf import settings
 from django.core.urlresolvers import reverse
-from django.views.generic import DetailView, CreateView, View, FormView, UpdateView, DeleteView, TemplateView
-from django.http import JsonResponse, HttpResponseForbidden
+from django.views.generic import DetailView, CreateView, View, FormView, UpdateView, DeleteView, TemplateView, ListView
+from django.http import JsonResponse, HttpResponseForbidden, HttpResponseRedirect
+from django.utils import lru_cache
 from django.contrib import messages
 from ore.projects.models import Project
 from ore.projects.views import ProjectNavbarMixin
 from ore.core.views import RequiresPermissionMixin, MultiFormMixin
-from ore.versions.forms import NewVersionForm, VersionDescriptionForm, VersionRenameForm
-from ore.versions.models import Version, File
+from ore.versions.forms import NewVersionForm, VersionEditForm, VersionRenameForm, ChannelForm, NewFileForm
+from ore.versions.models import Version, File, Channel
 
 import os.path
 import os
@@ -18,18 +20,46 @@ import uuid
 import json
 
 
-class ProjectsVersionsListView(ProjectNavbarMixin, DetailView):
+class ProjectsVersionsListView(ProjectNavbarMixin, ListView):
 
-    model = Project
-    slug_field = 'name'
-    slug_url_kwarg = 'project'
+    model = Version
 
     template_name = 'repo/versions/list.html'
-    context_object_name = 'proj'
+    context_object_name = 'versions'
     active_project_tab = 'versions'
 
+    def get_project(self):
+        return get_object_or_404(Project, name=self.kwargs['project'], namespace__name=self.kwargs['namespace'])
+
     def get_queryset(self):
-        return Project.objects.filter(namespace__name=self.kwargs['namespace'])
+        project = self.get_project()
+        qs = Version.objects.filter(project=project)
+        channel = self.get_channel()
+        if channel is not None:
+            qs = qs.filter(channel=channel)
+        return qs.as_user(self.request.user)
+
+    def get_channel(self):
+        channel_name = self.request.GET.get('channel', 'Release')
+        if channel_name != 'all':
+            return get_object_or_404(self.get_project().get_channels(), name=channel_name)
+        return None
+
+    def get_namespace(self):
+        if not hasattr(self, "_namespace"):
+            self._namespace = get_object_or_404(Namespace.objects.as_user(
+                self.request.user).select_subclasses(), name=self.kwargs['namespace'])
+            return self._namespace
+        else:
+            return self._namespace
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['current_channel'] = self.get_channel()
+        context['namespace'] = self.get_namespace()
+        context['proj'] = self.get_project()
+        context['channels'] = self.get_project().get_channels()
+        return context
 
 
 class VersionsNewView(RequiresPermissionMixin, ProjectNavbarMixin, CreateView):
@@ -168,7 +198,6 @@ class VersionsFileUploadedView(RequiresPermissionMixin, View):
         return super().dispatch(*args, **kwargs)
 
 
-
 def forbidden(request):
     return HttpResponseForbidden("no")
 
@@ -186,9 +215,16 @@ class VersionsManageView(RequiresPermissionMixin, MultiFormMixin, ProjectNavbarM
     permissions = ['version.edit']
 
     form_classes = {
-        'describe': VersionDescriptionForm,
+        'edit': VersionEditForm,
         'rename': VersionRenameForm,
+        'file_upload': NewFileForm,
     }
+
+    def get_form_kwargs(self, form_name):
+        kwargs = super().get_form_kwargs(form_name)
+        if form_name == 'rename':
+            kwargs['project'] = self.get_instance().project
+        return kwargs
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -200,16 +236,154 @@ class VersionsManageView(RequiresPermissionMixin, MultiFormMixin, ProjectNavbarM
         })
         return ctx
 
+    def form_invalid(self, form_name, form):
+        kwargs = self.get_context_data(**self.get_forms())
+        kwargs['show_modal'] = form_name + '-modal'
+        return self.render_to_response(kwargs)
+
+    def form_valid(self, form_name, form):
+        if form_name == 'file_upload':
+            file = form.save(commit=False)
+            file.version = self.get_instance()
+            file.project = file.version.project
+            file._update_attrs()
+            if file.version.files.filter(file_name=file.file_name).count():
+                # uh oh
+                messages.error(
+                    self.request, "Your file is named the same as a file already in this version. Try renaming it before uploading!")
+            else:
+                file.save()
+                form.save_m2m()
+
+                messages.success(
+                    self.request, "Your file was uploaded successfully!")
+            return self.get(self.request)
+        else:
+            form.save()
+            messages.success(
+                self.request, "Your changes were saved successfully!")
+        return HttpResponseRedirect(self.get_form_instance(form_name).get_absolute_url())
+
     def get_form_instance(self, form_name):
+        if form_name == 'file_upload':
+            return None
         return self.get_instance()
 
     def get_instance(self):
-        if not '_instance' in self.__dict__.keys():
-            self._instance = self.get_queryset().get(**{self.slug_field: self.kwargs[self.slug_url_kwarg]})
+        if '_instance' not in self.__dict__.keys():
+            self._instance = self.get_queryset().get(
+                **{self.slug_field: self.kwargs[self.slug_url_kwarg]})
         return self._instance
 
     def get_queryset(self):
         return Version.objects.as_user(self.request.user).filter(project__namespace__name=self.kwargs['namespace'], project__name=self.kwargs['project']).select_related('project')
+
+    def post(self, request, *args, **kwargs):
+        if self.request.POST.get('action') == 'delete_file':
+            qs = self.get_instance().files.filter(
+                id=self.request.POST.get('file_id'))
+            if qs:
+                qs.get().delete()
+                messages.success(
+                    self.request, "Your file was deleted successfully.")
+        elif self.request.POST.get('action') == 'promote_file':
+            qs = self.get_instance().files.filter(
+                id=self.request.POST.get('file_id'))
+            if qs:
+                self.get_instance().files.update(is_primary=None)
+                file = qs.get()
+                file.is_primary = True
+                file.save()
+        return super().post(request, *args, **kwargs)
+
+
+class ChannelsManageView(RequiresPermissionMixin, ProjectNavbarMixin, TemplateView):
+
+    active_project_tab = 'manage'
+    template_name = 'repo/versions/channels_manage.html'
+
+    permissions = ['version.edit']
+
+    def get_project(self):
+        if getattr(self, '_project', None) is None:
+            self._project = get_object_or_404(
+                Project, name=self.kwargs['project'], namespace__name=self.kwargs['namespace'])
+        return self._project
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx.update({
+            'namespace': self.kwargs['namespace'],
+            'project': self.kwargs['project'],
+            'proj': self.get_project(),
+            'active_settings': 'channels',
+            'channels': self.get_channels(),
+            'create': self.get_create_form(),
+        })
+        return ctx
+
+    def get_create_form(self):
+        if self.request.method == 'POST' and self.request.POST.get('action') == 'create' and not getattr(self, 'make_blank', False):
+            data = self.request.POST
+        else:
+            data = None
+
+        return ChannelForm(self.get_project(), data)
+
+    def get_update_form(self, channel):
+        if self.request.method == 'POST' and self.request.POST.get('action') == 'update' and self.request.POST.get('old_id') == str(channel.id) and not getattr(self, 'make_blank', False):
+            data = self.request.POST
+        else:
+            data = None
+
+        return ChannelForm(self.get_project(), data, instance=channel)
+
+    def get_channels(self):
+        channels = self.get_project().get_channels()
+        for channel in channels:
+            if channel.project is not None:
+                channel.update_form = self.get_update_form(channel)
+        return channels
+
+    def post(self, request, *args, **kwargs):
+        self.make_blank = False
+        if self.request.POST.get('action') == 'create':
+            form = self.get_create_form()
+            if form.is_valid():
+                new_channel = form.save(commit=False)
+                new_channel.project = self.get_project()
+                new_channel.save()
+                form.save_m2m()
+
+                self.make_blank = True
+                messages.success(
+                    request, r"The channel was successfully created!")
+        elif self.request.POST.get('action') == 'delete':
+            channel = self.get_project().channels.get(
+                id=self.request.POST.get('old_id'))
+            message = ""
+            if channel.versions.count():
+                channel.versions.update(
+                    channel=Channel.objects.get(name='Snapshot', project=None))
+                message = " and the existing versions were reassigned into the 'Snapshot' channel"
+            channel.delete()
+            messages.success(
+                request, r"The channel was successfully deleted{}!".format(message))
+        elif self.request.POST.get('action') == 'update':
+            channels = self.get_channels()
+            for channel in channels:
+                if str(channel.id) == self.request.POST.get('old_id'):
+                    break
+            else:
+                return self.get(request, *args, **kwargs)
+
+            channel.update_form.save()
+            self.make_blank = True
+
+            messages.success(
+                request, r"The channel was successfully updated!")
+
+        return self.get(request, *args, **kwargs)
 
 
 class VersionsDeleteView(RequiresPermissionMixin, ProjectNavbarMixin, DeleteView):

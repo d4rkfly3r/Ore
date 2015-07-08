@@ -1,60 +1,89 @@
-{% extends "repo/projects/_page.html" %}
+{% extends "repo/projects/_manage_page.html" %}
 {% load crispy_forms_tags %}
 {% load permissions %}
 {% load static %}
 {% block title %}
-Manage | {{ proj.name }}
+Manage | {{ version.name }} | {{ proj.name }}
 {% endblock %}
-{% block page %}
+{% block manage_page %}
 
+<a href="{{ version.get_absolute_url }}"><h1 style="margin-top: 0;">{{ version.name }}</h1></a>
+<br>
+
+{% ifpermitted user "version.edit" proj %}
 <div class="panel panel-default">
     <div class="panel-heading">
         <h3 class="panel-title">Options</h3>
     </div>
     <ul class="list-group">
-        {% ifpermitted user "version.edit" proj %}
-            <li class="list-group-item">
-                <h4 class="list-group-item-heading spacey-heading">Change Description</h4>
-                {% crispy describe %}
-            </li>
-        {% endifpermitted %}
+        <li class="list-group-item">
+            <h4 class="list-group-item-heading spacey-heading">Edit Version</h4>
+            {% crispy edit %}
+        </li>
 
         <li class="list-group-item">
-            <h4 class="list-group-item-heading">Other List Item</h4>
-            other list item...
+            <h4 class="list-group-item-heading">Upload Additional File</h4>
+            {% crispy file_upload %}
         </li>
     </ul>
 </div>
+{% endifpermitted %}
 
+{% ifpermitted user "version.edit" proj %}
+{% if version.files.count %}
 <div class="panel panel-default">
     <div class="panel-heading">
-        <h3 class="panel-title">Team Management</h3>
+        <h3 class="panel-title">File Management</h3>
     </div>
-    <div class="panel-body">
-        Coming soon™...
-    </div>
+    <ul class="list-group">
+        {% for file in version.files.all %}
+        <li class="list-group-item">
+            <h4 class="list-group-item-heading">{{ file.file_name }}</h4>
+
+            <form method="POST" action="">
+                {% csrf_token %}
+                <input type="hidden" name="file_id" value="{{ file.id }}">
+
+                <div class="btn-group">
+                    <button type="submit" class="btn btn-success" name="action" value="promote_file" {% if version.primary_file == file %}disabled="disabled"{% endif %}>
+                        <i class="fa fa-arrow-up"></i>
+                        {% if version.primary_file == file %}Already Primary{% else %}Make Primary{% endif %}
+                    </button>
+                    <button type="submit" class="btn btn-danger" name="action" value="delete_file">
+                        <i class="fa fa-times"></i>
+                        Delete
+                    </button>
+                </div>
+            </form>
+        </li>
+        {% endfor %}
+    </ul>
 </div>
+{% endif %}
+{% endifpermitted %}
 
 <div class="panel panel-default">
     <div class="panel-heading">
         <h3 class="panel-title">Destructive Actions</h3>
     </div>
-    <div class="panel-body">
-        <div class="btn-group">
-            {% ifpermitted user "version.edit" proj %}
-                <button type="button" class="btn btn-warning" data-toggle="modal" data-target="#rename-modal">
-                    Rename
-                </button>
-            {% endifpermitted %}
+    <ul class="list-group">
+        <li class="list-group-item">
+            <div class="btn-group">
+                {% ifpermitted user "version.edit" proj %}
+                    <button type="button" class="btn btn-warning" data-toggle="modal" data-target="#rename-modal">
+                        Rename
+                    </button>
+                {% endifpermitted %}
 
-            {% ifpermitted user "version.delete" proj %}
-                <button type="button" class="btn btn-danger" data-toggle="modal" data-target="#delete-modal">
-                    <i class="fa fa-times"></i>
-                    Delete
-                </button>
-            {% endifpermitted %}
-        </div>
-    </div>
+                {% ifpermitted user "version.delete" proj %}
+                    <button type="button" class="btn btn-danger" data-toggle="modal" data-target="#delete-modal">
+                        <i class="fa fa-times"></i>
+                        Delete
+                    </button>
+                {% endifpermitted %}
+            </div>
+        </li>
+    </ul>
 </div>
 
 <div class="modal fade" id="rename-modal" tabindex="-1">

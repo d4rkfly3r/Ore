@@ -1,0 +1,26 @@
+{% extends "repo/projects/_page.html" %}
+
+{% block page %}
+<div class="container-fluid wrapper-960">
+    <div class="row">
+        <div class="col-md-9">
+        	{% block manage_page %}{% endblock %}
+        </div>
+        <div class="col-md-3">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Project Settings</h3>
+                </div>
+                <div class="list-group">
+                    <a href="{% url "repo-projects-manage" namespace=namespace project=proj %}" class="list-group-item {% if active_settings == "overall" %}active{% endif %}">
+                        Overall<span class="pull-right"><i class="fa fa-cog"></i></span>
+                    </a>
+                    <a href="{% url "repo-versions-admin" namespace=namespace project=proj %}" class="list-group-item {% if active_settings == "channels" %}active{% endif %}">
+                        Release Channels<span class="pull-right"><i class="fa fa-download"></i></span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -88,6 +88,10 @@ class Project(models.Model):
 
         return Namespace.objects.get_subclass(id=self.namespace_id).user_has_permission(user, perm_slug, project=self)
 
+    def get_channels(self):
+        from ore.versions.models import Channel
+        return Channel.objects.filter(Q(project=self) | Q(project=None))
+
     def __repr__(self):
         return '<Project %s by %s>' % (self.name, self.namespace.name)
 

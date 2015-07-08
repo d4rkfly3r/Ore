@@ -39,8 +39,7 @@ class ProjectsDetailView(ProjectNavbarMixin, DetailView):
         return Project.objects.as_user(self.request.user).filter(namespace__name=self.kwargs['namespace'])
 
 
-class ProjectsManageView(RequiresPermissionMixin, ProjectNavbarMixin, DetailView):
-
+class ProjectsManageBase(RequiresPermissionMixin, ProjectNavbarMixin):
     model = Project
     slug_field = 'name'
     slug_url_kwarg = 'project'
@@ -63,7 +62,7 @@ class ProjectsManageView(RequiresPermissionMixin, ProjectNavbarMixin, DetailView
         return Project.objects.as_user(self.request.user).filter(namespace=self.get_namespace())
 
     def get_context_data(self, **kwargs):
-        context = super(ProjectsManageView, self).get_context_data(**kwargs)
+        context = super().get_context_data(**kwargs)
         context['namespace'] = self.get_namespace()
         context['description_form'] = ProjectDescriptionForm(
             project=self.object.name, namespace=self.get_namespace().name,
@@ -71,40 +70,20 @@ class ProjectsManageView(RequiresPermissionMixin, ProjectNavbarMixin, DetailView
         context['rename_form'] = ProjectRenameForm(
             project=self.object.name, namespace=self.get_namespace().name,
             initial=dict(name=self.object.name))
+        context['active_settings'] = 'overall'
         return context
 
 
-class ProjectsDescribeView(RequiresPermissionMixin, ProjectNavbarMixin, UpdateView):
+class ProjectsManageView(ProjectsManageBase, DetailView):
+    pass
 
-    model = Project
-    slug_field = 'name'
-    slug_url_kwarg = 'project'
 
-    template_name = 'repo/projects/manage.html'
-    context_object_name = 'proj'
-    active_project_tab = 'manage'
-
-    permissions = ['project.edit']
+class ProjectsDescribeView(ProjectsManageBase, UpdateView):
 
     form_class = ProjectDescriptionForm
 
-    def get_queryset(self):
-        return Project.objects.filter(namespace__name=self.kwargs['namespace'])
-
-    def get_namespace(self):
-        if not hasattr(self, "_namespace"):
-            self._namespace = get_object_or_404(Namespace.objects.as_user(
-                self.request.user).select_subclasses(), name=self.kwargs['namespace'])
-            return self._namespace
-        else:
-            return self._namespace
-
     def get_context_data(self, **kwargs):
-        context = super(ProjectsDescribeView, self).get_context_data(**kwargs)
-        context['namespace'] = self.get_namespace()
-        context['rename_form'] = ProjectRenameForm(
-            project=self.object.name, namespace=self.get_namespace().name,
-            initial=dict(name=self.object.name))
+        context = super().get_context_data(**kwargs)
         context['description_form'] = kwargs['form']
         return context
 
@@ -128,39 +107,14 @@ class ProjectsDescribeView(RequiresPermissionMixin, ProjectNavbarMixin, UpdateVi
             return self.http_method_not_allowed(request, *args, **kwargs)
 
 
-class ProjectsRenameView(RequiresPermissionMixin, ProjectNavbarMixin, UpdateView):
-
-    model = Project
-    slug_field = 'name'
-    slug_url_kwarg = 'project'
-
-    template_name = 'repo/projects/manage.html'
-    context_object_name = 'proj'
-    active_project_tab = 'manage'
-
-    permissions = ['project.rename']
+class ProjectsRenameView(ProjectsManageBase, UpdateView):
 
     form_class = ProjectRenameForm
 
-    def get_queryset(self):
-        return Project.objects.filter(namespace__name=self.kwargs['namespace'])
-
-    def get_namespace(self):
-        if not hasattr(self, "_namespace"):
-            self._namespace = get_object_or_404(Namespace.objects.as_user(
-                self.request.user).select_subclasses(), name=self.kwargs['namespace'])
-            return self._namespace
-        else:
-            return self._namespace
-
     def get_context_data(self, **kwargs):
         context = super(ProjectsRenameView, self).get_context_data(**kwargs)
-        context['namespace'] = self.get_namespace()
         context['rename_form'] = kwargs['form']
         context['show_modal'] = 'rename-modal'
-        context['description_form'] = ProjectDescriptionForm(
-            project=self.object.name, namespace=self.get_namespace().name,
-            initial=dict(description=self.object.description))
         return context
 
     def get_form_kwargs(self):
@@ -170,15 +124,14 @@ class ProjectsRenameView(RequiresPermissionMixin, ProjectNavbarMixin, UpdateView
         return kwargs
 
     def form_valid(self, form):
-        self.object = form.save()
-
         name = form.cleaned_data['name']
-        namespace = form.cleaned_data['namespace']
 
-        if namespace.projects.filter(name=name).count():
+        if form.instance.namespace.projects.filter(name=name).count():
             form.add_error(
                 'name', 'That project already exists for the given namespace')
             return self.form_invalid(form)
+
+        self.object = form.save()
 
         messages.success(self.request, "The project's name has been changed.")
         return redirect(reverse('repo-projects-manage',

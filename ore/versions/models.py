@@ -24,6 +24,7 @@ class Version(models.Model):
                             ])
     description = models.TextField('description')
     project = models.ForeignKey(Project, related_name='versions')
+    channel = models.ForeignKey('Channel', related_name='versions')
 
     objects = UserFilteringManager()
 
@@ -57,8 +58,19 @@ class Version(models.Model):
                        kwargs={'namespace': self.project.namespace.name, 'project': self.project.name,
                                'version': self.name})
 
+    def get_absolute_manage_url(self):
+        return reverse('repo-versions-manage',
+                       kwargs={'namespace': self.project.namespace.name, 'project': self.project.name,
+                               'version': self.name})
+
     def full_name(self):
         return "{}/{}".format(self.project.full_name(), self.name)
+
+    def primary_file(self):
+        qs = self.files.filter(is_primary=True)
+        if qs.count():
+            return qs.get()
+        return self.files.all()[0]
 
     class Meta:
         ordering = ['-pk']
@@ -93,6 +105,8 @@ class File(models.Model):
     file_size = models.PositiveIntegerField(null=True, blank=False)
     file_sha1 = models.CharField(blank=False, null=False, max_length=40)
 
+    is_primary = models.NullBooleanField(null=True, default=None)
+
     objects = UserFilteringManager()
 
     @classmethod
@@ -117,8 +131,17 @@ class File(models.Model):
     def full_name(self):
         return "{}/{}".format(self.version.full_name(), str(self.file))
 
+    def get_absolute_url(self):
+        return reverse('repo-files-download',
+                       kwargs={'namespace': self.version.project.namespace.name, 'project': self.version.project.name,
+                               'version': self.version.name, 'file': self.file_name,
+                               'file_extension': self.file_extension})
+
     def __repr__(self):
-        return '<File %s in %s of %s>' % (str(self.file), self.version.name, self.version.project.name)
+        if self.version:
+            return '<File %s in %s of %s>' % (str(self.file), self.version.name, self.version.project.name)
+        else:
+            return '<File %s in %s>' % (str(self.file), self.project.name)
 
     def __str__(self):
         return str(self.file)
@@ -131,19 +154,43 @@ class File(models.Model):
             s.update(chunk)
         self.file_sha1 = s.hexdigest()
 
+    def _update_attrs(self):
+        import posixpath
+        self.file_name = posixpath.basename(self.file.name)
+        self.file_size = self.file.size
+
+        self._update_file_sha1()
+
     def save(self, *args, **kwargs):
         update_attrs = kwargs.pop('update_file_attrs', True)
 
         if update_attrs:
-            import posixpath
-            self.file_name, self.file_extension = posixpath.splitext(
-                posixpath.basename(self.file.name))
-            self.file_size = self.file.size
-
-            self._update_file_sha1()
+            self._update_attrs()
 
         super(File, self).save(*args, **kwargs)
 
     class Meta:
-        ordering = ['-pk']
-        unique_together = ('project', 'version', 'file_name', 'file_extension')
+        ordering = ['is_primary', '-pk']
+        unique_together = [
+            ('project', 'version', 'file_name', 'file_extension'),
+            ('project', 'version', 'is_primary')
+        ]
+
+
+class Channel(models.Model):
+
+    project = models.ForeignKey(
+        Project, related_name='channels', null=True, blank=True)
+    name = models.CharField('name', max_length=32,
+                            validators=[
+                                validators.RegexValidator(
+                                    TRIM_NAME_REGEX, 'Enter a valid version name.', 'invalid'),
+                                validate_not_prohibited,
+                            ])
+    colour = models.CharField('colour', max_length=7, validators=[
+        validators.RegexValidator(
+            '^#[0-9a-f]{6}$', 'Enter a valid HTML colour (e.g. #af0000)', 'invalid'),
+    ])
+
+    def __str__(self):
+        return self.name
