@@ -7,6 +7,7 @@ from model_utils import Choices
 from model_utils.fields import StatusField
 from ore.core.util import validate_not_prohibited, UserFilteringManager, prefix_q
 from ore.projects.models import Project
+from ore.util import ColourGenerator
 from ore.core.regexs import TRIM_NAME_REGEX
 import reversion
 
@@ -190,7 +191,7 @@ class Channel(models.Model):
     colour = models.CharField('colour', max_length=7, validators=[
         validators.RegexValidator(
             '^#[0-9a-f]{6}$', 'Enter a valid HTML colour (e.g. #af0000)', 'invalid'),
-    ])
+    ], default=lambda: ColourGenerator().generate())
 
     def __str__(self):
         return self.name
