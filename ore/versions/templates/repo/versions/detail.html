@@ -16,6 +16,10 @@
 
 
     <div class="pull-right btn-group" role="group" aria-label="Version management controls">
+        <a href="{% url 'repo-versions-flag' namespace=proj.namespace.name project=proj.name version=version.name %}"
+        class="btn btn-default">
+            <i class="fa fa-flag"></i>
+        </a>
         {% ifpermitted user "version.edit" version.project %}
         <a href="{{ version.get_absolute_manage_url }}" class="btn btn-default">
             <i class="fa fa-upload"></i>

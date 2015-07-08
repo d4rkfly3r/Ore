@@ -10,6 +10,9 @@
             <ul class="list-group version-list-group">
                 {% for version in versions %}
                     <li class="list-group-item version-list-group-item">
+                        {% if version.primary_file %}
+                            <div class="pull-right version-list-download-btn"><a href="{{ version.primary_file.get_absolute_url }}" class="btn btn-success"><i class="fa fa-download"></i></a></div>
+                        {% endif %}
                         <a href="{{version.get_absolute_url}}"
                            class="version-listing">
                             <span class="dot version-listing-channel" style="background-color: {{version.channel.colour}}" title="{{ version.channel.name }}"></span>

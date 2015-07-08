@@ -9,11 +9,18 @@
     </strong>
 </h1>
 
-<div class="project-toolbar pull-right">
+<div class="project-toolbar pull-right btn-group">
+
     <a href="{% url 'repo-projects-flag' namespace=proj.namespace.name project=proj.name %}"
-            class="btn btn-default">
+        class="btn btn-default">
         <i class="fa fa-flag"></i>
     </a>
+            
+    {% if proj.release_version %}
+        <a class="btn btn-success" href="{{ proj.release_version.get_absolute_url }}">
+            <i class="fa fa-download"></i>
+        </a>
+    {% endif %}
 </div>
 
 <div class="clearfix"></div>

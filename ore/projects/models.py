@@ -92,6 +92,13 @@ class Project(models.Model):
         from ore.versions.models import Channel
         return Channel.objects.filter(Q(project=self) | Q(project=None))
 
+    def release_version(self):
+        from ore.versions.models import Channel
+        qs = self.versions.filter(channel=Channel.objects.get(project=None, name='Release')).order_by('-id')
+        if qs:
+            return qs[0]
+        return None
+
     def __repr__(self):
         return '<Project %s by %s>' % (self.name, self.namespace.name)
 
