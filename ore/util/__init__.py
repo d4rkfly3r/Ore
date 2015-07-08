@@ -1,6 +1,10 @@
 import random
 from collections import namedtuple
 
+
+# Colour generation sponsored by https://github.com/davidmerfield/randomColor/blob/master/randomColor.js
+# randomColor, for all your random colour needs
+
 class Colour(namedtuple('Colour', ['name', 'hue_range', 'lower_bounds'])):
 
     @property
