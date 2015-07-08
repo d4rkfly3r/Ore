@@ -5,6 +5,8 @@ from django.contrib import messages
 from django.contrib.auth.backends import ModelBackend
 from django.contrib.auth import get_user_model, login
 from django.views.generic import RedirectView
+from django.utils.http import is_safe_url
+from urllib.parse import urlencode
 
 from . import discourse_sso
 from .models import Nonce
@@ -51,7 +53,10 @@ class SSOViewMixin(object):
         url = settings.DISCOURSE_SSO_URL
         if not url.endswith('?') and not url.endswith('&'):
             url += '&' if '?' in url else '?'
-        return url + discourse_sso.generate_signed_query(self.request.build_absolute_uri(reverse('sso-return')), settings.DISCOURSE_SSO_SECRET, settings.SECRET_KEY)
+        data = {}
+        if self.request.GET.get('next') and is_safe_url(url=self.request.GET['next'], host=self.request.get_host()):
+            data['next'] = self.request.GET['next']
+        return url + discourse_sso.generate_signed_query(self.request.build_absolute_uri(reverse('sso-return')) + '?' + urlencode(data), settings.DISCOURSE_SSO_SECRET, settings.SECRET_KEY)
 
     def get_sso_data(self):
         sso, key = self.request.GET.get('sso'), self.request.GET.get('sig')
@@ -75,7 +80,10 @@ class SSOReturnView(SSOViewMixin, RedirectView):
     permanent = False
 
     def get_redirect_url(self):
-        return reverse('index')
+        next_point = self.request.GET.get('next', None)
+        if not next_point or not is_safe_url(url=self.request.GET['next'], host=self.request.get_host()):
+            next_point = reverse('index')
+        return next_point
 
     def get(self, request, *args, **kwargs):
         try:

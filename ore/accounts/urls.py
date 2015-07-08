@@ -17,7 +17,7 @@ if not settings.DISCOURSE_SSO_ENABLED:
             name='accounts-register'),
     )
 else:
-    sso_redirect_view = RedirectView.as_view(pattern_name='sso-begin')
+    sso_redirect_view = RedirectView.as_view(pattern_name='sso-begin', permanent=False, query_string=True)
     accounts_urlpatterns += patterns('',
         url(r'^login/$', sso_redirect_view,
             name='accounts-login'),
