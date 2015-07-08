@@ -38,6 +38,9 @@
                             <span class="dot" style="background-color: {{ channel.colour }};"></span> {{ channel.name }}
                         </a>
                     {% endfor %}
+                    <a class="list-group-item {% if not current_channel %}active{% endif %}" href="?channel=all">
+                        <span class="dot" style="background-color: white;"></span> All Versions
+                    </a>
 
                     {% ifanypermitted user "channel.create,channel.edit,channel.delete" proj %}
                         <a class="list-group-item text-right" href="{% url 'repo-versions-admin' namespace=proj.namespace.name project=proj.name %}">
