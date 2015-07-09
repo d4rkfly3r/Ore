@@ -71,9 +71,6 @@ class Version(models.Model):
         qs = self.files.filter(is_primary=True)
         if qs.count():
             return qs.get()
-        all_files = self.files.all()
-        if len(all_files) > 1:
-            return all_files[0]
         return None
 
     class Meta:
