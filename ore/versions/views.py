@@ -99,12 +99,22 @@ class VersionsNewView(RequiresPermissionMixin, ProjectNavbarMixin, CreateView):
         self.object = form.save()
 
         # now we handle the files themselves, if anywhere were uploaded
-        File.objects.filter(
+        adding_files = File.objects.filter(
             project=project, status=File.STATUS.pending, version=None, id__in=self.request.POST.getlist('file')
-        ).update(
+        )
+        adding_files.update(
             status=File.STATUS.active,
             version=self.object,
         )
+
+        adding_files = File.objects.filter(
+            project=project, version=self.object, id__in=self.request.POST.getlist('file')
+        )
+        for adding_file in adding_files:
+            if adding_file.is_jar:
+                adding_file.is_primary = True
+                adding_file.save()
+                break
 
         return super(VersionsNewView, self).form_valid(form)
 
