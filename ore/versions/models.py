@@ -147,6 +147,9 @@ class File(models.Model):
     def __str__(self):
         return str(self.file)
 
+    def is_jar(self):
+        return self.file_extension == '.jar' or (self.file_extension == '' and self.file_name.endswith('.jar'))
+
     def _update_file_sha1(self):
         import hashlib
         s = hashlib.sha1()
