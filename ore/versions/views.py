@@ -112,6 +112,7 @@ class VersionsNewView(MultiFormMixin, RequiresPermissionMixin, ProjectNavbarMixi
         kwargs = super(VersionsNewView, self).get_multi_form_kwargs()
         kwargs.update({
             'queryset': File.objects.none(),
+            'project': self.get_project(),
         })
         return kwargs
 

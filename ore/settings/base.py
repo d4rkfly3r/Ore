@@ -156,6 +156,9 @@ ACTSTREAM_SETTINGS = {
 # Crispy Forms
 CRISPY_TEMPLATE_PACK = 'bootstrap3'
 
+# Django Sites Framework
+SITE_ID = 1
+
 # Prohibited names (for namespaces, and projects, and versions)
 PROHIBITED_NAMES = (
     'manage',

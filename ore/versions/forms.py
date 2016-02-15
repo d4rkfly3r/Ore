@@ -1,5 +1,5 @@
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Layout, Submit, HTML, Field
+from crispy_forms.layout import Layout, Submit, HTML, Field, Hidden
 from django import forms
 from django.core.urlresolvers import reverse
 from django.forms import modelformset_factory
@@ -17,8 +17,8 @@ class NewVersionForm(forms.ModelForm):
         self.helper.label_class = 'col-lg-2'
         self.helper.field_class = 'col-lg-8'
         self.helper.layout = Layout(
-            'name',
-            'description',
+            Field('name'),
+            Field('description', css_class="oredown"),
         )
         self.fields['channel'] = forms.ModelChoiceField(
             queryset=Channel.objects.filter(project_id=kwargs['instance'].project.id))
@@ -112,19 +112,31 @@ class ChannelDeleteForm(forms.Form):
 class NewFileForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
+        project = None
+        if 'project' in kwargs:
+            project = kwargs.pop('project')
         super(NewFileForm, self).__init__(*args, **kwargs)
+        if project:
+            self.project = project
         self.helper = FormHelper(self)
         self.helper.layout = Layout(
-            'file'
+            Field('file'),
         )
         if kwargs['prefix'] == 'file-0':
             self.fields['file'].label = 'Primary file'
         else:
             self.fields['file'].label = 'Additional file'
 
+    def clean(self):
+        cleaned_data = super().clean()
+        if self.empty_permitted and not self.has_changed():
+            cleaned_data['project'] = self.project if 'file' in cleaned_data else None
+        return cleaned_data
+
     class Meta:
         model = File
-        fields = ('file',)
+        fields = ('file', 'project')
+        widgets = {'project': forms.HiddenInput()}
 
 BaseNewVersionInnerFileFormset = modelformset_factory(
     File, form=NewFileForm, max_num=5, validate_max=True)
@@ -133,7 +145,10 @@ BaseNewVersionInnerFileFormset = modelformset_factory(
 class NewVersionInnerFileFormset(BaseNewVersionInnerFileFormset):
 
     def __init__(self, *args, **kwargs):
+        project = kwargs.pop('project')
         super(NewVersionInnerFileFormset, self).__init__(*args, **kwargs)
+        self.form_kwargs['project'] = project
+        #self.form.initial['project'] = self.form.project
         self.helper = FormHelper()
         self.helper.form_tag = False
         self.helper.disable_csrf = True
@@ -141,5 +156,5 @@ class NewVersionInnerFileFormset(BaseNewVersionInnerFileFormset):
         self.helper.field_class = 'col-lg-8'
         self.helper.layout = Layout(
             #Fieldset('File', 'name', 'file')
-            'file'
+            Field('file'),
         )

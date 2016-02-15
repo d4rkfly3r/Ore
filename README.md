@@ -9,7 +9,7 @@ While bugfixes and PRs and such are welcome, they will most likely get overwritt
 There is an instance staged to https://ore-staging.spongepowered.org with docker and magic web scale sauce™.
 Don't get too attached to whatever you put there, because it's most likely going to be reset.
 
-The Sponge package repository.
+Also see [ore-frontend](https://github.com/gratimax/ore-frontend), the frontend for Ore.
 
 ## Faq
 
@@ -43,15 +43,16 @@ Yes.
 
 ## Development
 
-Written with Python 3 and Django 1.9.
+Written with Python 3 and Django 1.9. Requires [Node.js](https://nodejs.org/en/)
 You should probably use virtualenv.
 
 1.  Create a new virtualenv - my suggestion is to use `virtualenv venv` in the root of the project.
 2.  Enter the virtualenv - if you followed my instruction about, use `source venv/bin/activate`.
 3.  Install the requirements - `pip install -r requirements/development.txt`
 4.  Set up the database - our base development settings expect a database with name `repo`, user `admin` and password `password`.
-5.  Perform a migration - `python ore/manage.py migrate`
-6.  Start the web server - `python ore/manage.py runserver`
+5.  Install Node.js dependencies - `npm install`
+6.  Perform a migration - `python ore/manage.py migrate`
+7.  Start the web server - `python ore/manage.py runserver`
 
 Note that we use Postgres, both in production and development. We can and probably will choose to use Postgres-only features, so beware!
 

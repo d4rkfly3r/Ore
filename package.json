@@ -1,0 +1,25 @@
+{
+  "name": "ore",
+  "version": "0.0.1-dev",
+  "description": "[![Build Status](https://travis-ci.org/SpongePowered/Ore.svg?branch=master)](https://travis-ci.org/SpongePowered/Ore) [![Slack Status](https://slackin.spongepowered.org/badge.svg)](https://slackin.spongepowered.org)",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SpongePowered/Ore.git"
+  },
+  "author": "The SpongePowered Web Team",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/SpongePowered/Ore/issues"
+  },
+  "homepage": "https://github.com/SpongePowered/Ore#readme",
+  "dependencies": {
+    "markdown-it": "^5.1.0",
+    "markdown-it-emoji": "^1.1.0",
+    "punycode": "^1.4.0",
+    "sanitize-html": "^1.11.3"
+  },
+  "devDependencies": {
+    "regenerate": "^1.2.1",
+    "unicode-7.0.0": "^0.1.5"
+  }
+}

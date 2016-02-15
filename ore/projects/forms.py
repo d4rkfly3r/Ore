@@ -145,7 +145,7 @@ class PageEditForm(forms.ModelForm):
         self.helper = FormHelper()
         self.helper.layout = Layout(
             Field('title', readonly=self.instance.slug == 'home'),
-            'content',
+            Field('content', css_class='oredown'),
             Submit('submit', 'Save'),
         )
 

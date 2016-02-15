@@ -1,144 +1,49 @@
-from markdown2 import markdown
-from bleach import clean
-from bs4 import BeautifulSoup
-from ore.core.regexs import EXTENDED_URL_REGEX
-import re
-from django.core.urlresolvers import reverse
+import os.path
+import dukpy
+from django.conf import settings
 
-# Our own custom ruleset for sanitized markdown
+basepath = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-ALLOWED_TAGS = [
-    'a',
-    'abbr',
-    'acronym',
-    'b',
-    'blockquote',
-    'br',
-    'code',
-    'div',
-    'em',
-    'i',
-    'li',
-    'img',
-    'ol',
-    'p',
-    'pre',
-    'span',
-    'strong',
-    'table',
-    'ul',
-    'h1',
-    'h2',
-    'h3',
-    'h4',
-    'h5',
-    'h6',
-    'hr'
-]
 
-ALLOWED_ATTRIBUTES = {
-    '*': ['style', 'id'],
-    'a': ['href', 'title', 'rel'],
-    'abbr': ['title'],
-    'acronym': ['title'],
-    # NOTE: While bleach does a good job at cleaning out <img src="javascript:alert('XSS')"> hacks,
-    # perhaps some greater care should be taken
-    'img': ['src', 'alt', 'width', 'height']
-}
+def load_dukpy_ctx():
+    result = os.path.join(basepath, 'node_modules')
+    if not os.path.exists(result):
+        raise ValueError("Unable to locate node_modules directory - is Ore installed correctly?")
 
-ALLOWED_STYLES = [
-    'color',
-    'background-color',
-    'font-size',
-    'font-weight',
-    'font-family',
-    'float',
-    'width',
-    'height',
-    'border'
-]
+    ctx = dukpy.RequirableContext([result])
 
-MARKDOWN_EXTRAS = [
-    'fenced-code-blocks',
-    'header-ids',
-    'markdown-in-html',
-    'spoilers',
-    'tables',
-    'footnotes',
-    "break-on-newline"
-]
+    def resolve_wrap(resolve):
+        def inner(req_ctx, id_, search_paths):
+            # bodge to work around the fact
+            # that the browser version of util
+            # imports inherits, which expects util to provide inherits
+            # yaey
+            if id_ == '!inherits!':
+                id_ = '!inherits/inherits_browser.js!'
 
-PAGE_REGEX = re.compile('^(?:page!)?(?P<page>' + EXTENDED_URL_REGEX + ')$')
-PROJECT_REGEX = re.compile(
-    '^(?:project!)?(?P<namespace>' + EXTENDED_URL_REGEX + ')/(?P<project>' + EXTENDED_URL_REGEX + ')$')
-NAMESPACE_REGEX = re.compile(
-    '^(?:namespace!|user!|organization!|org!)(?P<namespace>' + EXTENDED_URL_REGEX + ')$')
-OTHER_PROJECT_PAGE_REGEX = re.compile(
-    '^(?:projectpage!)?(?P<namespace>' + EXTENDED_URL_REGEX + ')/(?P<project>' + EXTENDED_URL_REGEX + ')/(?P<page>' + EXTENDED_URL_REGEX + ')$')
+            return resolve(req_ctx, id_, search_paths)
+        return inner
+
+    ctx.finder.resolve = resolve_wrap(ctx.finder.resolve)
+
+    return ctx
+
+
+def load_mdit(ctx):
+    with open(os.path.join(basepath, 'ore/core/static/ore/js/markdown.js'), 'r') as f:
+        return ctx.evaljs(f.read())
+
+ctx = load_dukpy_ctx()
+mdit = None
+if not settings.DEBUG:
+    import logging
+    logging.info("Loading markdown context")
+    mdit = load_mdit(ctx)
 
 
 def compile(text, context={}):
-    md = markdown(text, extras=MARKDOWN_EXTRAS)
-    sanitized = clean(
-        md, tags=ALLOWED_TAGS, attributes=ALLOWED_ATTRIBUTES, styles=ALLOWED_STYLES)
+    global mdit
+    if mdit is None:
+        mdit = load_mdit(ctx)
 
-    bs = BeautifulSoup(sanitized, "html5lib")
-    # if we have links of the form "x" or "x/y" or "x/y/z", then we link to:
-    # page: x
-    # project: x/y
-    # page-in-project: x/y:z
-    for link in bs.find_all('a'):
-        href = link.get('href', '')
-        if href == '':
-            continue
-        rem = PAGE_REGEX.match(href)
-        prem = PROJECT_REGEX.match(href)
-        nem = NAMESPACE_REGEX.match(href)
-        oprem = OTHER_PROJECT_PAGE_REGEX.match(href)
-        if rem:
-            ctx = dict(context)
-            ctx.update(rem.groupdict())
-            if ctx['page'] == 'home':
-                ctx = {
-                    x: y for x, y in ctx.items() if x in ('namespace', 'project')
-                }
-                link['href'] = reverse('projects-detail', kwargs=ctx)
-            else:
-                ctx = {
-                    x: y for x, y in ctx.items() if x in ('namespace', 'project', 'page')
-                }
-                link['href'] = reverse('projects-pages-detail', kwargs=ctx)
-        elif prem:
-            ctx = dict(context)
-            ctx.update(prem.groupdict())
-            ctx = {
-                x: y for x, y in ctx.items() if x in ('namespace', 'project')
-            }
-            link['href'] = reverse('projects-detail', kwargs=ctx)
-        elif nem:
-            ctx = dict(context)
-            ctx.update(nem.groupdict())
-            ctx = {
-                x: y for x, y in ctx.items() if x in ('namespace',)
-            }
-            link['href'] = reverse('core-namespace', kwargs=ctx)
-        elif oprem:
-            ctx = dict(context)
-            ctx.update(oprem.groupdict())
-            if ctx['page'] == 'home':
-                ctx = {
-                    x: y for x, y in ctx.items() if x in ('namespace', 'project')
-                }
-                link['href'] = reverse('projects-detail', kwargs=ctx)
-            else:
-                ctx = {
-                    x: y for x, y in ctx.items() if x in ('namespace', 'project', 'page')
-                }
-                link['href'] = reverse('projects-pages-detail', kwargs=ctx)
-
-    for img in bs.find_all('img'):
-        src = img.get('src', '')
-        if src and src.startswith('/uploads/default'):
-            img['src'] = 'https://forums.spongepowered.org' + src
-
-    return str(bs)
+    return mdit(text)

@@ -284,4 +284,29 @@ jQuery(function ($) {
       }
     })();
   }
+
+
+
+  $('.oredown').each(function() {
+    var $this = $(this);
+    $this.wrap('<div class="oredown-container row"></div>');
+    var $outer = $this.parent('.oredown-container');
+    $this.wrap('<div class="oredown-textarea-container col-md-6"></div>');
+    var $preview = $('<div class="oredown-preview col-md-6"></div>');
+    $outer.append($preview);
+
+    var scrollPreview = function() {
+      $preview.scrollTop($this.scrollTop());
+    };
+
+    var updatePreview = function() {
+      var content = $this.val();
+      $preview.html(window.markdown(content));
+      scrollPreview();
+    };
+    updatePreview();
+
+    $this.change(updatePreview).blur(updatePreview).keydown(updatePreview).keyup(updatePreview);
+    $this.scroll(scrollPreview);
+  });
 });

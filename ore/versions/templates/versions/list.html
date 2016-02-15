@@ -16,7 +16,7 @@ Versions | {{ proj.full_name }}
                                    <span class="channel {{ version.channel.color_class }}" style="background-color: #{{ version.channel.hex }}">{{ version.channel.name }}</span>
                                     {{version.name}}
                                 </span>
-                            <span class="version-listing-tagline">{{version.description}}</span>
+                            <span class="version-listing-tagline">{{version.description|truncatechars:140}}</span>
                         </a>
                     </li>
                 {% endfor %}
